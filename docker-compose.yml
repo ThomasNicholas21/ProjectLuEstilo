@@ -1,0 +1,29 @@
+services:
+  lu_estilo_api:
+    build: .
+    container_name: lu_estilo_api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./src:/app/src
+      - ./dotenv/.env:/app/.env
+    env_file:
+      - dotenv/.env
+    depends_on:
+      - lu_estilo_db
+
+  lu_estilo_db:
+    image: postgres:14
+    container_name: lu_estilo_db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: lu_estilo
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
+volumes:
+  pg_data:
