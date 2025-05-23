@@ -11,6 +11,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 # Importa Base e models
 from src.common.database import Base
 from src.clients.models import Client
+from src.orders.models import Order
 from src.common.config import settings
 
 # Configuração base do Alembic
