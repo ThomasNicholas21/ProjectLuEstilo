@@ -1,13 +1,21 @@
-# src/schemas/client.py
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr, field_validator
+from .utils.cpf_validator import cpf_validador
 
 
 class ClientBase(BaseModel):
     name: str
     cpf: str
-    email: str
+    email: EmailStr
     phone: str
 
+    @field_validator("cpf")
+    @classmethod
+    def validate_cpf(cls, value: str) -> str:
+        # remove espaços, se quiser
+        value = value.strip()
+        if not cpf_validador(value):
+            raise ValueError("CPF inválido.")
+        return value
 
 class ClientCreate(ClientBase):
     pass
