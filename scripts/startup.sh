@@ -5,7 +5,8 @@ until nc -z lu_estilo_db 5432; do
     sleep 1
 done
 
-# alembic
+# Aplica migrations ao subir
+alembic upgrade head
 
 # Start the application
 uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
