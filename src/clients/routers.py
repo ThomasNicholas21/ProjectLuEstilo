@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from src.common.database import get_db
 from src.clients.models import Client
-from src.clients.serializer import ClientCreate, ClientResponse
+from src.clients.serializer import ClientCreate, ClientUpdate, ClientResponse
 
 
 client_router = APIRouter(prefix="/clients", tags=["Clients"])
@@ -43,7 +43,7 @@ async def get_detail_client(id_client: str , db: Session = Depends(get_db)):
             client = db.query(Client).get(id_client)
 
             if not client: 
-                 raise HTTPException(status_code=404, detail="Cliente não encontrado")
+                    raise HTTPException(status_code=404, detail="Cliente não encontrado")
 
             return client
         
@@ -51,4 +51,22 @@ async def get_detail_client(id_client: str , db: Session = Depends(get_db)):
             db.rollback()
 
             raise HTTPException(status_code=500, detail=f"Erro ao salvar no banco de dados: {e}")
-             
+        
+
+@client_router.put("/{id_client}", response_model=ClientResponse)
+async def put_detail_client(id_client: int, client_update: ClientUpdate, db: Session = Depends(get_db)):
+    try:
+        client = db.query(Client).get(id_client)
+        if not client:
+            raise HTTPException(status_code=404, detail="Cliente não encontrado")
+
+        update_data = client_update.model_dump(exclude_unset=True)
+        for key, value in update_data.items():
+            setattr(client, key, value)
+
+        db.commit()
+        db.refresh(client)
+        return client
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao atualizar cliente: {str(e)}")
