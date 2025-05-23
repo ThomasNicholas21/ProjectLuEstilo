@@ -35,3 +35,20 @@ async def get_client(db: Session = Depends(get_db)):
             db.rollback()
 
             raise HTTPException(status_code=500, detail=f"Erro ao salvar no banco de dados: {e}")
+
+
+@client_router.get("/{id_client}", response_model=ClientResponse)
+async def get_detail_client(id_client: str , db: Session = Depends(get_db)):
+        try:
+            client = db.query(Client).get(id_client)
+
+            if not client: 
+                 raise HTTPException(status_code=404, detail="Cliente não encontrado")
+
+            return client
+        
+        except SQLAlchemyError as e:
+            db.rollback()
+
+            raise HTTPException(status_code=500, detail=f"Erro ao salvar no banco de dados: {e}")
+             
