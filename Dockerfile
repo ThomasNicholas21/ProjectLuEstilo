@@ -5,6 +5,9 @@ WORKDIR /app
 COPY /src /src
 COPY scripts /scripts
 COPY requirements.txt .
+COPY alembic alembic
+COPY alembic.ini .
+
 
 RUN apt-get update && apt-get install -y netcat-openbsd \
     && apt-get clean && rm -rf /var/lib/apt/lists/* \
