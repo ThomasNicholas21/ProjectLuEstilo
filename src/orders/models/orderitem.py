@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, Float, ForeignKey
 from sqlalchemy.orm import relationship
 from src.common.database import Base
+from src.products.models import Product
 
 class OrderItem(Base):
     __tablename__ = "orderitem"

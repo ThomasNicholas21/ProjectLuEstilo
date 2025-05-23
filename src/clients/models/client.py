@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import relationship
 from src.common.database import Base
+from src.orders.models import Order
 
 class Client(Base):
     __tablename__ = "client"
