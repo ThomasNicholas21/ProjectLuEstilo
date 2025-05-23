@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from src.common.config import settings
 from src.common.database import create_db_engine
+from src.clients.routers import client_router
 
 
 @asynccontextmanager
@@ -17,6 +18,7 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+app.include_router(client_router)
 
 app.add_middleware(
     CORSMiddleware,
