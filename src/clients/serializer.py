@@ -2,23 +2,32 @@ from pydantic import BaseModel, EmailStr, field_validator
 from .utils.cpf_validator import cpf_validador
 
 
-class ClientBase(BaseModel):
+class CPFValidatorMixin:
+    @field_validator("cpf")
+    @classmethod
+    def validate_cpf(cls, value: str) -> str:
+        value = value.strip()
+        if cpf_validador(value):
+            raise ValueError("CPF inválido.")
+        return value
+
+
+class ClientBase(BaseModel, CPFValidatorMixin):
     name: str
     cpf: str
     email: EmailStr
     phone: str
 
-    @field_validator("cpf")
-    @classmethod
-    def validate_cpf(cls, value: str) -> str:
-        # remove espaços, se quiser
-        value = value.strip()
-        if not cpf_validador(value):
-            raise ValueError("CPF inválido.")
-        return value
 
 class ClientCreate(ClientBase):
     pass
+
+
+class ClientUpdate(BaseModel, CPFValidatorMixin):
+    name: str | None = None
+    cpf: str | None = None
+    email: EmailStr | None = None
+    phone: str | None = None
 
 
 class ClientResponse(ClientBase):
