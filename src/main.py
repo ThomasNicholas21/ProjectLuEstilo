@@ -1,0 +1,34 @@
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
+from src.common.config import settings
+from src.common.database import create_db_engine
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    create_db_engine()
+    yield
+
+
+app = FastAPI(
+    title=settings.PROJECT_NAME,
+    version="1.0.0", 
+    lifespan=lifespan
+)
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], 
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@app.get("/", tags=["root"])
+async def read_root():
+    return {
+        "message": f"{settings.PROJECT_NAME} testando server"
+        }
