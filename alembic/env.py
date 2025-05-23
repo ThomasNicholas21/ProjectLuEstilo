@@ -13,6 +13,7 @@ from src.common.database import Base
 from src.clients.models import Client
 from src.orders.models import Order, OrderItem
 from src.products.models import Product
+from src.auth.models import User
 from src.common.config import settings
 
 # Configuração base do Alembic
