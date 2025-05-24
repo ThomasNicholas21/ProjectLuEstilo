@@ -1,11 +1,13 @@
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from src.auth.security.token import get_password_hash
-from src.auth.serializer import UserRegister, UserResponse, TokenResponse, UserLogin
+from src.auth.serializer import UserRegister, UserResponse, UserLogin
+from src.auth.serializer import TokenResponse, TokenRefreshRequest
 from src.auth.models import User
 from datetime import timedelta
 from src.common.database import get_db
 from src.auth.security.token import verify_password, create_access_token
+from src.auth.security.token import decode_refresh_token
 
 
 auth_router = APIRouter(prefix="/auth", tags=["User"])
@@ -34,7 +36,7 @@ def register(user_data: UserRegister, db: Session = Depends(get_db)):
 @auth_router.post("/login", response_model=TokenResponse)
 async def login(user_data: UserLogin, db: Session = Depends(get_db)):
     existing_user = db.query(User).filter(User.username == user_data.username).first()
-    
+
     if not existing_user:
         raise HTTPException(
             status_code=401,
@@ -53,5 +55,24 @@ async def login(user_data: UserLogin, db: Session = Depends(get_db)):
     return TokenResponse(
         access_token=access_token,
         refresh_token=refresh_token,
+        token_type="bearer"
+    )
+
+
+@auth_router.post("/refresh-token", response_model=TokenResponse)
+async def refresh_token(payload: TokenRefreshRequest):
+    username = decode_refresh_token(payload.refresh_token)
+
+    if not username:
+        raise HTTPException(
+            status_code=401,
+            detail="Refresh token inválido ou expirado."
+        )
+
+    new_access_token = create_access_token(data={"sub": username})
+    
+    return TokenResponse(
+        access_token=new_access_token,
+        refresh_token=payload.refresh_token, 
         token_type="bearer"
     )
