@@ -21,6 +21,8 @@ def cpf_validador(cpf: str):
 
     if novo_cpf3 != cpf:
         return False
+    
+    return True
             
     
 def avaliador1(argumentos):
