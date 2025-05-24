@@ -135,3 +135,24 @@ async def get_products(
     except SQLAlchemyError as e:
         raise HTTPException(status_code=500, detail=f"Erro ao buscar produtos: {e}")
     
+
+@product_router.get("/{id_product}", response_model=ProductResponse)
+async def get_detail_product(id_product: str, db: Session = Depends(get_db)):
+    try:
+        product = db.query(Product).get(id_product)
+
+        if not product:
+            raise HTTPException(status_code=404, detail="Produto não encontrado")
+        
+        return product
+    
+    except SQLAlchemyError as e:
+        db.rollback()
+
+        raise HTTPException(status_code=500, detail=f"Erro ao salvar no banco de dados: {e}")
+    
+    except Exception as e:
+        db.rollback()
+
+        raise HTTPException(status_code=500, detail=f"Erro ao atualizar cliente: {str(e)}")
+
