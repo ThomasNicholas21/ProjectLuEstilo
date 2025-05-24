@@ -1,7 +1,7 @@
 # src/routers/client.py
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from typing import List
 from src.common.database import get_db
 from src.clients.models import Client
@@ -19,6 +19,14 @@ async def post_client(client: ClientCreate, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(db_client)
         return db_client
+    
+    except IntegrityError as e:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=400,
+            detail=f"Campos únicos violados: {e}"
+        )
     
     except SQLAlchemyError as e:
         db.rollback()
@@ -85,3 +93,22 @@ async def put_detail_client(id_client: int, client_update: ClientUpdate, db: Ses
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao atualizar cliente: {str(e)}")
+
+
+@client_router.delete("/{id_client}", response_model=ClientResponse)
+async def delete_detail_client(id_client: int, db: Session = Depends(get_db)):
+    try:
+        client = db.query(Client).get(id_client)
+
+        if not client:
+            raise HTTPException(status_code=404, detail="Cliente não encontrado")
+        
+        db.delete(client)
+        db.commit()
+
+        return client
+
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Erro ao deletar cliente: {str(e)}")
+    
