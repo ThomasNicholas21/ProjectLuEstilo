@@ -1,7 +1,8 @@
 # src/routers/client.py
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
+from typing import List
 from src.common.database import get_db
 from src.clients.models import Client
 from src.clients.serializer import ClientCreate, ClientUpdate, ClientResponse
@@ -25,16 +26,29 @@ async def post_client(client: ClientCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Erro ao salvar no banco de dados: {e}")
 
 
-@client_router.get("/", response_model=list[ClientResponse])
-async def get_client(db: Session = Depends(get_db)):
+@client_router.get("/", response_model=List[ClientResponse])
+async def get_client(
+    name: str | None = Query(default=None),
+    email: str | None = Query(default=None),
+    skip: int = Query(default=0, ge=0), 
+    limit: int = Query(default=10, ge=1), 
+    db: Session = Depends(get_db)
+):
     try:
-        response = db.query(Client).all()
-        return response
+        query = db.query(Client)
+
+        if name:
+            query = query.filter(Client.name.ilike(f"%{name}%"))
+
+        if email:
+            query = query.filter(Client.email.ilike(f"%{email}%"))
+
+        clients = query.offset(skip).limit(limit).all()
+
+        return clients
 
     except SQLAlchemyError as e:
-        db.rollback()
-
-        raise HTTPException(status_code=500, detail=f"Erro ao salvar no banco de dados: {e}")
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar clientes: {e}")
 
 
 @client_router.get("/{id_client}", response_model=ClientResponse)
