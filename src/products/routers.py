@@ -33,6 +33,12 @@ async def post_product(
     db: Session = Depends(get_db)
 ):
     try:
+        if stock < 0:
+            raise HTTPException(
+                status_code=422,
+                detail="O estoque não pode ser menor que 0"
+            )
+
         description = None if description == "" else description
         category = None if category == "" else category
         section = None if section == "" else section
