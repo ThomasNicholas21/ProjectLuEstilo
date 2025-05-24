@@ -7,7 +7,7 @@ class CPFValidatorMixin:
     @classmethod
     def validate_cpf(cls, value: str) -> str:
         value = value.strip()
-        if cpf_validador(value):
+        if not cpf_validador(value):
             raise ValueError("CPF inválido.")
         return value
 
