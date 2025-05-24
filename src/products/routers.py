@@ -183,3 +183,26 @@ async def put_detail_product(id_product: str, product_update: ProductUpdate, db:
 
         raise HTTPException(status_code=500, detail=f"Erro ao atualizar cliente: {str(e)}")
     
+
+@product_router.delete("/{id_product}")
+async def delete_detail_product(id_product: int, db: Session = Depends(get_db)):
+    try:
+        product = db.query(Product).get(id_product)
+
+        if not product:
+            raise HTTPException(status_code=404, detail="Produto não encontrado")
+
+        db.delete(product)
+        db.commit()
+
+        return product
+
+    except SQLAlchemyError as e:
+        db.rollback()
+
+        raise HTTPException(status_code=500, detail=f"Erro ao salvar no banco de dados: {e}")
+    
+    except Exception as e:
+        db.rollback()
+
+        raise HTTPException(status_code=500, detail=f"Erro ao atualizar cliente: {str(e)}")
