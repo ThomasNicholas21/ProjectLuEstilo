@@ -6,7 +6,7 @@ from pydantic import ValidationError
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from src.products.models import Product
-from src.products.serializer import ProductResponse, ProductBase
+from src.products.serializer import ProductResponse, ProductBase, ProductUpdate
 from src.common.database import get_db
 from typing import Optional, Union, List
 from datetime import datetime
@@ -156,3 +156,30 @@ async def get_detail_product(id_product: str, db: Session = Depends(get_db)):
 
         raise HTTPException(status_code=500, detail=f"Erro ao atualizar cliente: {str(e)}")
 
+
+@product_router.put("/{id_product}", response_model=ProductResponse)
+async def put_detail_product(id_product: str, product_update: ProductUpdate, db: Session = Depends(get_db)):
+    try:
+        product = db.query(Product).get(id_product)
+
+        if not product:
+            raise HTTPException(status_code=404, detail="Produto não encontrado")
+
+        update_data = product_update.model_dump(exclude_unset=True)
+        for key, value in update_data.items():
+            setattr(product, key, value)
+        
+        db.commit()
+        db.refresh(product)
+        return product
+
+    except SQLAlchemyError as e:
+        db.rollback()
+
+        raise HTTPException(status_code=500, detail=f"Erro ao salvar no banco de dados: {e}")
+    
+    except Exception as e:
+        db.rollback()
+
+        raise HTTPException(status_code=500, detail=f"Erro ao atualizar cliente: {str(e)}")
+    
