@@ -1,11 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi import (
+    APIRouter, Depends, HTTPException, 
+    UploadFile, File, Form, Query
+    )
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from src.products.models import Product
 from src.products.serializer import ProductResponse, ProductBase
 from src.common.database import get_db
-from typing import Optional, Union
+from typing import Optional, Union, List
 from datetime import datetime
 import shutil
 import uuid
@@ -94,4 +97,35 @@ async def post_product(
             status_code=500,
             detail=f"Erro inesperado: {str(e)}"
         )
+    
+
+@product_router.get("/", response_model=List[ProductResponse])
+async def get_products(
+    category: Optional[str] = Query(default=None),
+    price: Optional[float] = Query(default=None),
+    available: Optional[bool] = Query(default=None),
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=10, ge=1),
+    db: Session = Depends(get_db)
+):
+    try:
+        query = db.query(Product)
+
+        if category:
+            query = query.filter(Product.category.ilike(f"%{category}%"))
+
+        if price is not None:
+            query = query.filter(Product.price == price)
+
+        if available is not None:
+            if available:
+                query = query.filter(Product.stock > 0)
+            else:
+                query = query.filter(Product.stock == 0)
+
+        products = query.offset(skip).limit(limit).all()
+        return products
+
+    except SQLAlchemyError as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar produtos: {e}")
     
