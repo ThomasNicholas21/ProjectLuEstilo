@@ -60,29 +60,33 @@ def register_user(user_data: UserRegister, db: Session = Depends(get_db)):
     return new_user
 
 
-@auth_router.post("/login", response_model=TokenResponse)
-async def login(user_data: UserLogin, db: Session = Depends(get_db)):
-    existing_user = db.query(User).filter(User.username == user_data.username).first()
-
-    if not existing_user:
+@auth_router.post(
+    "/login",
+    response_model=TokenResponse,
+    summary="Autenticar usuário",
+    responses={
+        200: {"description": "Login bem-sucedido"},
+        401: {"description": "Credenciais inválidas"}
+    }
+)
+async def login_user(user_data: UserLogin, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.username == user_data.username).first()
+    
+    if not user or not verify_password(user_data.password, user.password):
         raise HTTPException(
-            status_code=401,
-            detail="Usuário não encontrado."
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Credenciais inválidas."
         )
-
-    if not verify_password(user_data.password, existing_user.password):
-        raise HTTPException(
-            status_code=401,
-            detail="Senha incorreta."
-        )
-
-    access_token = create_access_token(data={"sub": existing_user.username})
-    refresh_token = create_access_token(data={"sub": existing_user.username}, expires_delta=timedelta(days=7))
-
+    
+    access_token = create_access_token(data={"sub": user.username})
+    refresh_token = create_access_token(
+        data={"sub": user.username},
+        expires_delta=timedelta(days=7)
+    )
+    
     return TokenResponse(
         access_token=access_token,
-        refresh_token=refresh_token,
-        token_type="bearer"
+        refresh_token=refresh_token
     )
 
 
