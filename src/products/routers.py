@@ -10,7 +10,6 @@ from src.utils.role_validator import check_admin_permission
 from .models import Product
 from .schemas import ProductCreate, ProductResponse, ProductUpdate
 import uuid
-import os
 import shutil
 
 
@@ -274,25 +273,44 @@ async def put_detail_product(
 
 
     
-@product_router.delete("/{id_product}")
-async def delete_detail_product(id_product: int, db: Session = Depends(get_db)):
+@product_router.delete(
+    "/{product_id}",
+    response_model=ProductResponse,
+    summary="Excluir produto",
+    responses={
+        204: {"description": "Produto excluído com sucesso"},
+        403: {"description": "Acesso negado"},
+        404: {"description": "Produto não encontrado"},
+        500: {"description": "Erro interno no servidor"}
+    }
+)
+async def delete_detail_product(
+    product_id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    check_admin_permission(current_user)
+    
     try:
-        product = db.query(Product).get(id_product)
-
+        product = db.query(Product).get(product_id)
         if not product:
-            raise HTTPException(status_code=404, detail="Produto não encontrado")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Produto ID {product_id} não encontrado"
+            )
 
         db.delete(product)
         db.commit()
-
         return product
 
     except SQLAlchemyError as e:
         db.rollback()
-
-        raise HTTPException(status_code=500, detail=f"Erro ao salvar no banco de dados: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro ao excluir produto"
+        )
     
     except Exception as e:
         db.rollback()
 
-        raise HTTPException(status_code=500, detail=f"Erro ao atualizar cliente: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro insperado: {str(e)}")
