@@ -119,3 +119,25 @@ async def get_order(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro inesperado: {str(e)}")
+
+
+@order_router.get("/{id_order}", response_model=OrderResponse)
+async def get_detail_client(id_order: str, db: Session = Depends(get_db)):
+    try:
+        order = db.query(Order).get(id_order)
+
+        if not order:
+            raise HTTPException(status_code=404, detail="Pedido não encontrado")
+
+        return order
+    
+    except SQLAlchemyError as e:
+        db.rollback()
+
+        raise HTTPException(status_code=500, detail=f"Erro ao salvar no banco de dados: {e}")
+    
+    except Exception as e:
+        db.rollback()
+
+        raise HTTPException(status_code=500, detail=f"Erro ao atualizar cliente: {str(e)}")
+    
