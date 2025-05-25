@@ -117,17 +117,26 @@ async def post_product(
     except Exception as e:
         db.rollback()
 
-        raise HTTPException(status_code=500, detail=f"Erro ao atualizar cliente: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao criar cliente: {str(e)}")
 
 
-@product_router.get("/", response_model=List[ProductResponse])
+@product_router.get(
+    "/",
+    response_model=List[ProductResponse],
+    summary="Listar produtos com filtros",
+    responses={
+        200: {"description": "Lista de produtos paginada"},
+        500: {"description": "Erro interno no servidor"}
+    }
+)
 async def get_products(
-    category: Optional[str] = Query(default=None),
-    price: Optional[float] = Query(default=None),
-    available: Optional[bool] = Query(default=None),
-    skip: int = Query(default=0, ge=0),
-    limit: int = Query(default=10, ge=1),
-    db: Session = Depends(get_db)
+    category: Optional[str] = Query(None, example="eletrônicos", description="Filtrar por categoria"),
+    price: Optional[float] = Query(None, example=99.90, description="Filtrar por preço exato"),
+    available: Optional[bool] = Query(None, example=True, description="Filtrar por disponibilidade em estoque"),
+    skip: int = Query(0, ge=0, example=0),
+    limit: int = Query(10, ge=1, le=100, example=10),
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
     try:
         query = db.query(Product)
@@ -137,18 +146,22 @@ async def get_products(
 
         if price is not None:
             query = query.filter(Product.price == price)
-
+            
         if available is not None:
-            if available:
-                query = query.filter(Product.stock > 0)
-            else:
-                query = query.filter(Product.stock == 0)
+            query = query.filter(Product.stock > 0 if available else Product.stock == 0)
 
-        products = query.offset(skip).limit(limit).all()
-        return products
+        return query.offset(skip).limit(limit).all()
 
     except SQLAlchemyError as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao buscar produtos: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro ao consultar produtos"
+        )
+    
+    except Exception as e:
+        db.rollback()
+
+        raise HTTPException(status_code=500, detail=f"Erro insperado: {str(e)}")
     
 
 @product_router.get("/{id_product}", response_model=ProductResponse)
