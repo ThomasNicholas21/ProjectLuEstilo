@@ -45,9 +45,26 @@ async def post_client(
     
     except IntegrityError as e:
         db.rollback()
+        
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="CPF ou email já cadastrado"
+        )
+    
+    except SQLAlchemyError:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro interno ao buscar clientes"
+        )
+    
+    except Exception:
+        db.rollback()
+        
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro interno"
         )
 
 
@@ -69,12 +86,23 @@ async def get_client(
         query = db.query(Client)
         if name: query = query.filter(Client.name.ilike(f"%{name}%"))
         if email: query = query.filter(Client.email.ilike(f"%{email}%"))
+
         return query.offset(skip).limit(limit).all()
     
-    except SQLAlchemyError as e:
+    except SQLAlchemyError:
+        db.rollback()
+
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro interno ao buscar clientes"
+        )
+    
+    except Exception:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro interno"
         )
 
 
@@ -111,6 +139,22 @@ async def put_detail_client(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Dados inválidos"
         )
+    
+    except SQLAlchemyError:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro interno ao buscar clientes"
+        )
+    
+    except Exception:
+        db.rollback()
+        
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro interno"
+        )
 
 
 @client_router.delete(
@@ -133,14 +177,30 @@ async def delete_detail_client(
             detail="Cliente não encontrado"
         )
     
+    if client.orders:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Não é possível excluir clientes com pedidos associados"
+        )
+    
     try:
         db.delete(client)
         db.commit()
+        
         return client
     
-    except SQLAlchemyError as e:
+    except SQLAlchemyError:
+        db.rollback()
+
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro interno ao excluir cliente"
         )
     
+    except Exception:
+        db.rollback()
+        
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro interno"
+        )
