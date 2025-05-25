@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from src.common.database import get_db
 from src.clients.models import Client
 from src.orders.models import Order, OrderItem
@@ -51,7 +51,7 @@ async def post_order(order: OrderCreate, db: Session = Depends(get_db)):
             status=order.status,
             total_amount=total_amount,
             total_price=total_price,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
             items=order_items
         )
 
