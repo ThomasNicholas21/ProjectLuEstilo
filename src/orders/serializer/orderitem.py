@@ -10,6 +10,11 @@ class OrderItemCreate(OrderItemBase):
     pass
 
 
+class OrderItemUpdate(BaseModel):
+    id_product: int
+    amount: int
+
+
 class OrderItemResponse(OrderItemBase):
     id_orderitem: int
     unit_price: float

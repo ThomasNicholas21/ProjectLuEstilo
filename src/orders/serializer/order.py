@@ -2,7 +2,7 @@ from pydantic import BaseModel
 from datetime import datetime
 from typing import List, Optional
 from enum import Enum
-from .orderitem import OrderItemCreate, OrderItemResponse
+from .orderitem import OrderItemCreate, OrderItemResponse, OrderItemUpdate
 
 
 class OrderStatusEnum(str, Enum):
@@ -23,7 +23,9 @@ class OrderCreate(OrderBase):
 
 
 class OrderUpdate(BaseModel):
+    id_client: Optional[int] = None
     status: Optional[OrderStatusEnum] = None
+    products: Optional[List[OrderItemUpdate]] = None
 
 
 class OrderResponse(BaseModel):
