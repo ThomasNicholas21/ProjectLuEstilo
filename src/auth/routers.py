@@ -1,4 +1,10 @@
-from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi import (
+    APIRouter, 
+    HTTPException, 
+    Depends, 
+    status,
+    )
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import timedelta
 from .security.token import (
@@ -10,7 +16,6 @@ from .security.token import (
 from .schemas import (
     UserRegister,
     UserResponse,
-    UserLogin,
     TokenResponse,
     TokenRefreshRequest
 )
@@ -69,27 +74,26 @@ def register_user(user_data: UserRegister, db: Session = Depends(get_db)):
         401: {"description": "Credenciais inválidas"}
     }
 )
-async def login_user(user_data: UserLogin, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.username == user_data.username).first()
-    
-    if not user or not verify_password(user_data.password, user.password):
+async def login_user_with_form(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db)
+):
+    user = db.query(User).filter(User.username == form_data.username).first()
+
+    if not user or not verify_password(form_data.password, user.password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Credenciais inválidas."
         )
-    
+
     access_token = create_access_token(
-        data={"sub": user.username, "role": user.role} 
+        data={"sub": user.username, "role": user.role}
     )
     refresh_token = create_access_token(
-        data={"sub": user.username},
-        expires_delta=timedelta(days=7)
+        data={"sub": user.username}, expires_delta=timedelta(days=7)
     )
-    
-    return TokenResponse(
-        access_token=access_token,
-        refresh_token=refresh_token
-    )
+
+    return TokenResponse(access_token=access_token, refresh_token=refresh_token)
 
 
 @auth_router.post(
