@@ -90,20 +90,23 @@ async def login_user(user_data: UserLogin, db: Session = Depends(get_db)):
     )
 
 
-@auth_router.post("/refresh-token", response_model=TokenResponse)
-async def refresh_token(payload: TokenRefreshRequest):
+@auth_router.post(
+    "/refresh-token",
+    response_model=TokenResponse,
+    summary="Refresh de token de acesso",
+    responses={
+        200: {"description": "Novo token gerado"},
+        401: {"description": "Refresh token inválido"}
+    }
+)
+async def refresh_access_token(payload: TokenRefreshRequest):
     username = decode_refresh_token(payload.refresh_token)
-
+    
     if not username:
         raise HTTPException(
-            status_code=401,
+            status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Refresh token inválido ou expirado."
         )
-
-    new_access_token = create_access_token(data={"sub": username})
     
-    return TokenResponse(
-        access_token=new_access_token,
-        refresh_token=payload.refresh_token, 
-        token_type="bearer"
-    )
+    new_access_token = create_access_token(data={"sub": username})
+    return TokenResponse(access_token=new_access_token, refresh_token=payload.refresh_token)
