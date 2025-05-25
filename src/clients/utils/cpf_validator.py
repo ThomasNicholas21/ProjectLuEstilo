@@ -1,7 +1,6 @@
 import re
 
-
-def cpf_validador(cpf: str):
+def cpf_validator(cpf: str):
     if not cpf.isdigit():
         cpf = re.sub(r'\D', '', cpf)
     
@@ -13,36 +12,34 @@ def cpf_validador(cpf: str):
 
     if cpf == cpf[::-1]:
         return False
-            
-    
-    novo_cpf1 = cpf[:9]
-    novo_cpf2 = novo_cpf1 + str(avaliador1(novo_cpf1))
-    novo_cpf3 = novo_cpf2 + str(avaliador2(novo_cpf2))
 
-    if novo_cpf3 != cpf:
+    base_cpf = cpf[:9]
+    cpf_with_first_digit = base_cpf + str(first_digit_evaluator(base_cpf))
+    cpf_with_second_digit = cpf_with_first_digit + str(second_digit_evaluator(cpf_with_first_digit))
+
+    if cpf_with_second_digit != cpf:
         return False
-    
-    return True
-            
-    
-def avaliador1(argumentos):
-    total = 0
-    reverso = 10
-    for i in argumentos:
-        total += int(i) * reverso
-        reverso -= 1
-    
-    digito = (total * 10) % 11
-    digito = digito if digito <= 9 else 0
-    return digito
 
-def avaliador2(argumentos):
+    return True
+
+def first_digit_evaluator(numbers):
     total = 0
-    reverso = 11
-    for i in argumentos:
-        total += int(i) * reverso
-        reverso -= 1
-    
-    digito = (total * 10) % 11
-    digito = digito if digito <= 9 else 0
-    return digito
+    reverse = 10
+    for n in numbers:
+        total += int(n) * reverse
+        reverse -= 1
+
+    digit = (total * 10) % 11
+    digit = digit if digit <= 9 else 0
+    return digit
+
+def second_digit_evaluator(numbers):
+    total = 0
+    reverse = 11
+    for n in numbers:
+        total += int(n) * reverse
+        reverse -= 1
+
+    digit = (total * 10) % 11
+    digit = digit if digit <= 9 else 0
+    return digit
