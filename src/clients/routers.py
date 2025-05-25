@@ -58,29 +58,31 @@ async def post_client(
         )
 
 
-@client_router.get("/", response_model=List[ClientResponse])
+@client_router.get(
+    "/",
+    response_model=List[ClientResponse],
+    summary="Listar clientes",
+    responses={200: {"description": "Lista de clientes paginada"}}
+)
 async def get_client(
-    name: str | None = Query(default=None),
-    email: str | None = Query(default=None),
-    skip: int = Query(default=0, ge=0), 
-    limit: int = Query(default=10, ge=1), 
-    db: Session = Depends(get_db)
+    name: str | None = Query(None, example="João"),
+    email: str | None = Query(None, example="joao@email.com"),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1, le=100),
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user) 
 ):
     try:
         query = db.query(Client)
-
-        if name:
-            query = query.filter(Client.name.ilike(f"%{name}%"))
-
-        if email:
-            query = query.filter(Client.email.ilike(f"%{email}%"))
-
-        clients = query.offset(skip).limit(limit).all()
-
-        return clients
-
+        if name: query = query.filter(Client.name.ilike(f"%{name}%"))
+        if email: query = query.filter(Client.email.ilike(f"%{email}%"))
+        return query.offset(skip).limit(limit).all()
+    
     except SQLAlchemyError as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao buscar clientes: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro interno ao buscar clientes"
+        )
 
 
 @client_router.get("/{id_client}", response_model=ClientResponse)
