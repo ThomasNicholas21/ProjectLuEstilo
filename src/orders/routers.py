@@ -169,26 +169,41 @@ async def get_order(
         )
 
 
-@order_router.get("/{id_order}", response_model=OrderResponse)
-async def get_detail_order(id_order: str, db: Session = Depends(get_db)):
-    try:
+@order_router.get(
+    "/{id_order}",
+    response_model=OrderResponse,
+    summary="Detalhes de um pedido",
+    responses={404: {"description": "Pedido não encontrado"}}
+)
+async def get_detail_order(
+    id_order: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    try: 
         order = db.query(Order).get(id_order)
 
         if not order:
-            raise HTTPException(status_code=404, detail="Pedido não encontrado")
-
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Pedido ID {id_order} não encontrado"
+            )
         return order
     
     except SQLAlchemyError as e:
         db.rollback()
 
-        raise HTTPException(status_code=500, detail=f"Erro ao salvar no banco de dados: {e}")
-    
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro ao consultar banco de dados"
+        )
+
     except Exception as e:
         db.rollback()
-
-        raise HTTPException(status_code=500, detail=f"Erro ao atualizar cliente: {str(e)}")
-    
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro interno ao processar pedido."
+        )
 
 
 @order_router.put("/{id_order}", response_model=OrderResponse)
