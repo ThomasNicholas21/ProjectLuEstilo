@@ -203,62 +203,74 @@ async def get_detail_product(
         raise HTTPException(status_code=500, detail=f"Erro insperado: {str(e)}")
 
 
-@product_router.put("/{id_product}", response_model=ProductResponse)
+@product_router.put(
+    "/{id_product}",
+    response_model=ProductResponse,
+    summary="Atualizar produto",
+    responses={
+        400: {"description": "Dados inválidos"},
+        403: {"description": "Acesso negado"},
+        404: {"description": "Produto não encontrado"},
+        415: {"description": "Formato de imagem não suportado"},
+        422: {"description": "Erro de validação"},
+        500: {"description": "Erro interno no servidor"}
+    }
+)
 async def put_detail_product(
     id_product: int,
+    data: ProductUpdate,
     image: Optional[UploadFile] = File(None),
-    data: ProductUpdate = Depends(),
     db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
+    check_admin_permission(current_user)
+    
     try:
-        product = db.query(Product).filter(Product.id_product == id_product).first()
+        product = db.query(Product).get(id_product)
         if not product:
-            raise HTTPException(status_code=404, detail="Produto não encontrado")
-
-        parsed_valid_date = None
-        if data.valid_date:
-            try:
-                parsed_valid_date = datetime.strptime(data.valid_date, "%Y-%m-%d")
-            except ValueError:
-                raise HTTPException(status_code=422, detail="Formato de data inválido. Use YYYY-MM-DD")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Produto ID {id_product} não encontrado"
+            )
 
         image_path = None
-        if image and hasattr(image, 'filename') and image.filename:
-            if image.content_type not in ["image/jpeg", "image/png"]:
-                raise HTTPException(status_code=400, detail="Formato de imagem não suportado.")
-            ext = image.filename.split('.')[-1]
-            filename = f"{uuid.uuid4()}.{ext}"
-            os.makedirs(UPLOAD_DIR, exist_ok=True)
-            image_path = os.path.join(UPLOAD_DIR, filename)
-            with open(image_path, 'wb') as buffer:
+        if image:
+            if image.content_type not in ALLOWED_IMAGE_TYPES:
+                raise HTTPException(
+                    status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+                    detail="Formatos suportados: JPEG, PNG"
+                )
+                
+            file_ext = image.filename.split('.')[-1]
+            filename = f"{uuid.uuid4()}.{file_ext}"
+            image_path = str(UPLOAD_DIR / filename)
+            
+            with open(image_path, "wb") as buffer:
                 shutil.copyfileobj(image.file, buffer)
 
-        update_fields = {
-            "name": data.name,
-            "bar_code": data.bar_code,
-            "description": data.description,
-            "price": data.price,
-            "stock": data.stock,
-            "valid_date": parsed_valid_date,
-            "category": data.category,
-            "section": data.section,
-            "images": image_path if image_path else None
-        }
-
-        for field, value in update_fields.items():
-            if value is not None:
-                setattr(product, field, value)
+        update_data = data.model_dump(exclude_unset=True)
+        if image_path:
+            update_data["images"] = image_path
+            
+        for key, value in update_data.items():
+            setattr(product, key, value)
 
         db.commit()
         db.refresh(product)
         return product
 
-    except SQLAlchemyError:
+    except SQLAlchemyError as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail="Erro ao atualizar produto no banco de dados.")
+
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro ao atualizar produto"
+        )
+    
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Erro inesperado: {str(e)}")
+
+        raise HTTPException(status_code=500, detail=f"Erro insperado: {str(e)}")
 
 
     
