@@ -105,37 +105,42 @@ async def post_order(
         )
 
 
-@order_router.get("/", response_model=List[OrderResponse])
+@order_router.get(
+    "/",
+    response_model=List[OrderResponse],
+    summary="Listar pedidos com filtros",
+    responses={200: {"description": "Lista de pedidos paginada"}}
+)
 async def get_order(
-    id_order: Optional[int] = Query(default=None),
-    id_product: Optional[int] = Query(default=None),
-    id_client: Optional[int] = Query(default=None),
-    status: Optional[str] = Query(default=None),
-    section: Optional[str] = Query(default=None),
-    start_date: Optional[datetime] = Query(default=None),
-    end_date: Optional[datetime] = Query(default=None),
-    skip: int = 0,
-    limit: int = 10,
-    db: Session = Depends(get_db)
+    id_order: Optional[int] = Query(None, example=1, description="Filtrar por ID do pedido"),
+    id_product: Optional[int] = Query(None, example=1, description="Filtrar por ID do produto"),
+    id_client: Optional[int] = Query(None, example=1, description="Filtrar por ID do cliente"),
+    status: Optional[str] = Query(None, example="pendente", description="Status do pedido"),
+    section: Optional[str] = Query(None, example="eletrônicos", description="Seção dos produtos"),
+    start_date: Optional[datetime] = Query(None, example="2024-01-01T00:00:00Z", description="Data inicial"),
+    end_date: Optional[datetime] = Query(None, example="2024-12-31T23:59:59Z", description="Data final"),
+    skip: int = Query(0, ge=0, example=0),
+    limit: int = Query(10, ge=1, le=100, example=10),
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
     try:
         query = db.query(Order)
 
-        if section:
-            query = query.join(Order.items).join(OrderItem.product).filter(Product.section.ilike(f"%{section}%"))
-
         if id_order:
             query = query.filter(Order.id_order == id_order)
-
-        if id_product:
-            query = query.join(Order.items).join(OrderItem.product).filter(Product.id_product == id_product)
-
 
         if id_client:
             query = query.filter(Order.id_client == id_client)
 
         if status:
             query = query.filter(Order.status == status)
+
+        if section:
+            query = query.join(Order.items).join(OrderItem.product).filter(Product.section.ilike(f"%{section}%"))
+
+        if id_product:
+            query = query.join(Order.items).filter(OrderItem.id_product == id_product)
 
         if start_date and end_date:
             query = query.filter(Order.created_at.between(start_date, end_date))
@@ -146,14 +151,22 @@ async def get_order(
         elif end_date:
             query = query.filter(Order.created_at <= end_date)
 
-        orders = query.offset(skip).limit(limit).all()
-        return orders
+        return query.offset(skip).limit(limit).all()
 
     except SQLAlchemyError as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao buscar pedidos: {e}")
+        db.rollback()
 
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro ao consultar banco de dados"
+        )
+    
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro inesperado: {str(e)}")
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro interno ao processar pedido."
+        )
 
 
 @order_router.get("/{id_order}", response_model=OrderResponse)
