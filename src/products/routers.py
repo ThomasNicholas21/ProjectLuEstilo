@@ -146,13 +146,15 @@ async def get_products(
 
         if price is not None:
             query = query.filter(Product.price == price)
-            
+
         if available is not None:
             query = query.filter(Product.stock > 0 if available else Product.stock == 0)
 
         return query.offset(skip).limit(limit).all()
 
     except SQLAlchemyError as e:
+        db.rollback()
+
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro ao consultar produtos"
@@ -164,36 +166,52 @@ async def get_products(
         raise HTTPException(status_code=500, detail=f"Erro insperado: {str(e)}")
     
 
-@product_router.get("/{id_product}", response_model=ProductResponse)
-async def get_detail_product(id_product: str, db: Session = Depends(get_db)):
+@product_router.get(
+    "/{id_product}",
+    response_model=ProductResponse,
+    summary="Obter detalhes de um produto",
+    responses={
+        404: {"description": "Produto não encontrado"},
+        500: {"description": "Erro interno no servidor"}
+    }
+)
+async def get_detail_product(
+    id_product: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
     try:
         product = db.query(Product).get(id_product)
-
         if not product:
-            raise HTTPException(status_code=404, detail="Produto não encontrado")
-        
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Produto ID {id_product} não encontrado"
+            )
         return product
     
     except SQLAlchemyError as e:
         db.rollback()
 
-        raise HTTPException(status_code=500, detail=f"Erro ao salvar no banco de dados: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro ao buscar produto"
+        )
     
     except Exception as e:
         db.rollback()
 
-        raise HTTPException(status_code=500, detail=f"Erro ao atualizar cliente: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro insperado: {str(e)}")
 
 
-@product_router.put("/{product_id}", response_model=ProductResponse)
+@product_router.put("/{id_product}", response_model=ProductResponse)
 async def put_detail_product(
-    product_id: int,
+    id_product: int,
     image: Optional[UploadFile] = File(None),
     data: ProductUpdate = Depends(),
     db: Session = Depends(get_db),
 ):
     try:
-        product = db.query(Product).filter(Product.id_product == product_id).first()
+        product = db.query(Product).filter(Product.id_product == id_product).first()
         if not product:
             raise HTTPException(status_code=404, detail="Produto não encontrado")
 
