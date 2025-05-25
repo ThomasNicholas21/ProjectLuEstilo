@@ -2,15 +2,14 @@ import sentry_sdk
 from sentry_sdk.integrations.fastapi import FastApiIntegration
 from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
 from pydantic_settings import BaseSettings
+from pydantic import ConfigDict
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Lu Estilo API"
     DATABASE_URL: str
     SECRET_KEY: str
     SENTRY_DNS: str
-
-    class Config:
-        env_file = "dotenv/.env"
+    model_config = ConfigDict(env_file="dotenv/.env")
 
 settings = Settings()
 

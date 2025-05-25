@@ -19,7 +19,7 @@ class OrderBase(BaseModel):
 
 
 class OrderCreate(OrderBase):
-    products: List[OrderItemCreate] = Field(..., min_items=1)
+    products: List[OrderItemCreate] = Field(..., min_length=1)
     model_config = ConfigDict(json_schema_extra={
             "example": {
                 "id_client": 1,
@@ -33,7 +33,7 @@ class OrderCreate(OrderBase):
 class OrderUpdate(BaseModel):
     id_client: Optional[int] = Field(None, example=1)
     status: Optional[OrderStatusEnum] = Field(None, example=OrderStatusEnum.PAGO)
-    products: Optional[List[OrderItemUpdate]] = Field(None, min_items=1)
+    products: Optional[List[OrderItemUpdate]] = Field(None, min_length=1)
 
 
 class OrderResponse(OrderBase):
@@ -42,6 +42,4 @@ class OrderResponse(OrderBase):
     total_price: float = Field(..., example=499.50)
     created_at: datetime = Field(..., example="2024-01-01T12:00:00Z")
     items: List[OrderItemResponse]
-    
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

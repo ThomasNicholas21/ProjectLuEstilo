@@ -56,6 +56,4 @@ class ProductUpdate(BaseModel):
 
 class ProductResponse(ProductBase):
     id_product: int = Field(..., example=1)
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

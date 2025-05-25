@@ -32,9 +32,7 @@ class UserResponse(BaseModel):
     id_user: int = Field(example=1)
     username: str = Field(example="john_doe")
     role: UserRole = Field(example=UserRole.REGULAR)
-
-    class Config:
-        from_attributes=True
+    model_config = ConfigDict(from_attributes=True) 
 
 
 class TokenResponse(BaseModel):

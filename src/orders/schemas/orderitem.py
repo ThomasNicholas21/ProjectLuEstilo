@@ -21,6 +21,4 @@ class OrderItemUpdate(OrderItemBase):
 class OrderItemResponse(OrderItemBase):
     id_orderitem: int = Field(..., example=1)
     unit_price: float = Field(..., example=99.90)
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

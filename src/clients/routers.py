@@ -75,8 +75,8 @@ async def post_client(
     responses={200: {"description": "Lista de clientes paginada"}}
 )
 async def get_client(
-    name: str | None = Query(None, example="João"),
-    email: str | None = Query(None, example="joao@email.com"),
+    name: str | None = Query(None, examples="João"),
+    email: str | None = Query(None, examples="joao@email.com"),
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
     db: Session = Depends(get_db),
@@ -100,6 +100,45 @@ async def get_client(
     except Exception as e:
         db.rollback()
 
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro interno"
+        )
+    
+
+@client_router.get(
+    "/{id_client}",
+    response_model=ClientResponse,
+    summary="Buscar cliente por ID",
+    responses={
+        200: {"description": "Cliente encontrado com sucesso"},
+        404: {"description": "Cliente não encontrado"}
+    }
+)
+async def get_detail_client(
+    id_client: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    try:
+        client = db.get(Client, id_client)
+        if not client:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Cliente não encontrado"
+            )
+        
+        return client
+
+    except SQLAlchemyError:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro interno ao buscar cliente"
+        )
+
+    except Exception:
+        db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro interno"
@@ -129,10 +168,15 @@ async def put_detail_client(
     
     try:
         update_data = client_update.model_dump(exclude_unset=True)
+
         for key, value in update_data.items():
             setattr(client, key, value)
+
         db.commit()
         return client
+    
+    except HTTPException as e:
+        raise
     
     except IntegrityError as e:
         raise HTTPException(
