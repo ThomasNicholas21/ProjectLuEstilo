@@ -1,50 +1,78 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import (
+    APIRouter, 
+    Depends, 
+    HTTPException, 
+    Query, 
+    status)
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from typing import List, Optional
 from datetime import datetime, timezone
 from src.common.database import get_db
-from src.clients.models import Client
+from src.auth.security.token import get_current_user
 from src.orders.models import Order, OrderItem
 from src.products.models import Product
-from src.orders.serializer import OrderCreate, OrderResponse, OrderUpdate
+from src.clients.models import Client
+from src.orders.schemas import OrderCreate, OrderResponse, OrderUpdate
+from src.utils.role_validator import check_admin_permission
 
 
-order_router = APIRouter(prefix="/orders", tags=["Orders"])
+order_router = APIRouter(
+    prefix="/orders",
+    tags=["Pedidos"],
+    responses={
+        403: {"description": "Acesso negado"},
+        401: {"description": "Credenciais inválidas"},
+        404: {"description": "Recurso não encontrado"}
+    }
+)
 
 
-@order_router.post("/", response_model=OrderResponse)
-async def post_order(order: OrderCreate, db: Session = Depends(get_db)):
+@order_router.post(
+    "/",
+    response_model=OrderResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Criar novo pedido",
+    responses={
+        400: {"description": "Estoque insuficiente ou dados inválidos"},
+        404: {"description": "Produto não encontrado"}
+    }
+)
+async def post_order(
+    order: OrderCreate,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    check_admin_permission(current_user)
+    
     try:
         total_price = 0
         total_amount = 0
-        order_items: List[OrderItem] = []
+        order_items = []
 
         for item in order.products:
-            product = db.query(Product).filter(Product.id_product == item.id_product).first()
-
+            product = db.query(Product).get(item.id_product)
             if not product:
-                raise HTTPException(status_code=404, detail=f"Produto ID {item.id_product} não encontrado")
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Produto ID {item.id_product} não encontrado"
+                )
 
             if product.stock < item.amount:
                 raise HTTPException(
-                    status_code=400,
-                    detail=f"Estoque insuficiente para o produto ID {item.id_product}"
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Estoque insuficiente para {product.name} (ID {product.id_product})"
                 )
 
             product.stock -= item.amount
-            db.add(product)
-
-            item_total_price = product.price * item.amount
-            total_price += item_total_price
+            total_price += product.price * item.amount
             total_amount += item.amount
 
-            order_item = OrderItem(
+            order_items.append(OrderItem(
                 id_product=item.id_product,
                 amount=item.amount,
-                unit_price=product.price  
-            )
-            order_items.append(order_item)
+                unit_price=product.price
+            ))
 
         new_order = Order(
             id_client=order.id_client,
@@ -63,12 +91,18 @@ async def post_order(order: OrderCreate, db: Session = Depends(get_db)):
     except SQLAlchemyError as e:
         db.rollback()
 
-        raise HTTPException(status_code=500, detail=f"Erro ao criar pedido: {e}")
-
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro ao processar pedido no banco de dados"
+        )
+    
     except Exception as e:
         db.rollback()
 
-        raise HTTPException(status_code=500, detail=f"Erro inesperado: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro interno ao processar pedido."
+        )
 
 
 @order_router.get("/", response_model=List[OrderResponse])
