@@ -14,14 +14,14 @@ class OrderStatusEnum(str, Enum):
 
 
 class OrderBase(BaseModel):
-    id_client: int = Field(..., example=1, description="ID do cliente associado")
-    status: OrderStatusEnum = Field(..., example=OrderStatusEnum.PENDENTE)
+    id_client: int = Field(..., examples=1, description="ID do cliente associado")
+    status: OrderStatusEnum = Field(..., examples=OrderStatusEnum.PENDENTE)
 
 
 class OrderCreate(OrderBase):
     products: List[OrderItemCreate] = Field(..., min_length=1)
     model_config = ConfigDict(json_schema_extra={
-            "example": {
+            "examples": {
                 "id_client": 1,
                 "status": "pendente",
                 "products": [{"id_product": 1, "amount": 2}]
@@ -31,15 +31,20 @@ class OrderCreate(OrderBase):
 
 
 class OrderUpdate(BaseModel):
+<<<<<<< HEAD
     id_client: Optional[int] = Field(None, example=1)
     status: Optional[OrderStatusEnum] = Field(None, example=OrderStatusEnum.PAGO)
+=======
+    id_client: Optional[int] = Field(None, examples=1)
+    status: Optional[OrderStatusEnum] = Field(None, examples=OrderStatusEnum.PAGO)
+>>>>>>> 5479eb99dcc1635d826877d8031cabe2dc8ff790
     products: Optional[List[OrderItemUpdate]] = Field(None, min_length=1)
 
 
 class OrderResponse(OrderBase):
-    id_order: int = Field(..., example=1)
-    total_amount: int = Field(..., example=5)
-    total_price: float = Field(..., example=499.50)
-    created_at: datetime = Field(..., example="2024-01-01T12:00:00Z")
+    id_order: int = Field(..., examples=1)
+    total_amount: int = Field(..., examples=5)
+    total_price: float = Field(..., examples=499.50)
+    created_at: datetime = Field(..., examples="2024-01-01T12:00:00Z")
     items: List[OrderItemResponse]
     model_config = ConfigDict(from_attributes=True)

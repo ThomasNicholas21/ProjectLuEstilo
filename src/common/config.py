@@ -9,6 +9,10 @@ class Settings(BaseSettings):
     DATABASE_URL: str
     SECRET_KEY: str
     SENTRY_DNS: str
+<<<<<<< HEAD
+=======
+
+>>>>>>> 5479eb99dcc1635d826877d8031cabe2dc8ff790
     model_config = ConfigDict(env_file="dotenv/.env")
 
 settings = Settings()
