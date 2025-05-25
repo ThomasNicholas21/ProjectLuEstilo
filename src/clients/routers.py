@@ -120,20 +120,34 @@ async def put_detail_client(
         )
 
 
-@client_router.delete("/{id_client}", response_model=ClientResponse)
-async def delete_detail_client(id_client: int, db: Session = Depends(get_db)):
+@client_router.delete(
+    "/{id_client}",
+    response_model=ClientResponse,
+    summary="Excluir cliente",
+    responses={404: {"description": "Cliente não encontrado"}}
+)
+async def delete_detail_client(
+    id_client: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    check_admin_permission(current_user) 
+    
+    client = db.query(Client).get(id_client)
+    if not client:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Cliente não encontrado"
+        )
+    
     try:
-        client = db.query(Client).get(id_client)
-
-        if not client:
-            raise HTTPException(status_code=404, detail="Cliente não encontrado")
-        
         db.delete(client)
         db.commit()
-
         return client
-
+    
     except SQLAlchemyError as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=f"Erro ao deletar cliente: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro interno ao excluir cliente"
+        )
     
