@@ -12,8 +12,8 @@ from src.orders.serializer import OrderCreate, OrderResponse
 order_router = APIRouter(prefix="/orders", tags=["Orders"])
 
 
-@order_router.post("/", response_model=OrderResponse, status_code=status.HTTP_201_CREATED)
-async def create_order(order: OrderCreate, db: Session = Depends(get_db)):
+@order_router.post("/", response_model=OrderResponse)
+async def post_order(order: OrderCreate, db: Session = Depends(get_db)):
     try:
         total_price = 0
         total_amount = 0
@@ -66,5 +66,5 @@ async def create_order(order: OrderCreate, db: Session = Depends(get_db)):
 
     except Exception as e:
         db.rollback()
-        
+
         raise HTTPException(status_code=500, detail=f"Erro inesperado: {str(e)}")
