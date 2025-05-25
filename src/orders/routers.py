@@ -4,9 +4,10 @@ from sqlalchemy.exc import SQLAlchemyError
 from typing import List, Optional
 from datetime import datetime
 from src.common.database import get_db
+from src.clients.models import Client
 from src.orders.models import Order, OrderItem
 from src.products.models import Product
-from src.orders.serializer import OrderCreate, OrderResponse
+from src.orders.serializer import OrderCreate, OrderResponse, OrderUpdate
 
 
 order_router = APIRouter(prefix="/orders", tags=["Orders"])
@@ -140,4 +141,80 @@ async def get_detail_order(id_order: str, db: Session = Depends(get_db)):
         db.rollback()
 
         raise HTTPException(status_code=500, detail=f"Erro ao atualizar cliente: {str(e)}")
+    
+
+
+@order_router.put("/{id_order}", response_model=OrderResponse)
+async def put_detail_order(id_order: int, order_update: OrderUpdate, db: Session = Depends(get_db)):
+    try:
+        order = db.query(Order).get(id_order)
+        if not order:
+            raise HTTPException(status_code=404, detail="Pedido não encontrado")
+
+        update_data = order_update.model_dump(exclude_unset=True)
+
+        if "id_client" in update_data:
+            new_client = db.query(Client).filter(Client.id_client == update_data["id_client"]).first()
+            if not new_client:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Cliente ID {update_data['id_client']} não encontrado"
+                )
+            order.id_client = update_data["id_client"]
+
+        if "status" in update_data:
+            order.status = update_data["status"]
+
+        if "products" in update_data and update_data["products"]:
+            for item in order.items:
+                db.delete(item)
+            db.flush()
+
+            total_price = 0
+            total_amount = 0
+            new_items = []
+
+            for item_data in update_data["products"]:
+                product = db.query(Product).filter(Product.id_product == item_data.id_product).first()
+                if not product:
+                    raise HTTPException(
+                        status_code=404,
+                        detail=f"Produto ID {item_data.id_product} não encontrado"
+                    )
+
+                if product.stock < item_data.amount:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Estoque insuficiente para o produto ID {item_data.id_product}"
+                    )
+
+                product.stock -= item_data.amount
+                db.add(product)
+
+                total_price += product.price * item_data.amount
+                total_amount += item_data.amount
+
+                order_item = OrderItem(
+                    id_product=item_data.id_product,
+                    amount=item_data.amount,
+                    unit_price=product.price,
+                    order=order
+                )
+                new_items.append(order_item)
+
+            order.items = new_items
+            order.total_price = total_price
+            order.total_amount = total_amount
+
+        db.commit()
+        db.refresh(order)
+        return order
+
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Erro ao salvar no banco de dados: {e}")
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Erro ao atualizar pedido: {str(e)}")
     
