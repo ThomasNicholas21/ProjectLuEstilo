@@ -272,7 +272,6 @@ async def put_detail_product(
         raise HTTPException(status_code=500, detail=f"Erro insperado: {str(e)}")
 
 
-    
 @product_router.delete(
     "/{product_id}",
     response_model=ProductResponse,
