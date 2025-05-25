@@ -290,24 +290,46 @@ async def put_detail_order(
         )
 
 
-@order_router.delete("{id_order}", response_model=OrderResponse)
-async def delete_detail_order(id_order: str, db: Session = Depends(get_db)):
+@order_router.delete(
+    "/{id_order}",
+    response_model=OrderResponse,
+    summary="Excluir pedido",
+    responses={404: {"description": "Pedido não encontrado"}}
+)
+async def delete_detail_order(
+    id_order: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    check_admin_permission(current_user)
     try:
         order = db.query(Order).get(id_order)
-
         if not order:
-            raise HTTPException(status_code=404, detail="Pedido não encontrado.")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Pedido ID {id_order} não encontrado"
+            )
+
+        for item in order.items:
+            product = db.query(Product).get(item.id_product)
+            product.stock += item.amount
         
         db.delete(order)
         db.commit()
-        
         return order
 
     except SQLAlchemyError as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Erro ao salvar no banco de dados: {e}")
 
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro ao consultar banco de dados"
+        )
+    
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Erro ao atualizar pedido: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro interno ao processar pedido."
+        )
     
