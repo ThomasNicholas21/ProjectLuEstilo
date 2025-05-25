@@ -122,7 +122,7 @@ async def get_order(
 
 
 @order_router.get("/{id_order}", response_model=OrderResponse)
-async def get_detail_client(id_order: str, db: Session = Depends(get_db)):
+async def get_detail_order(id_order: str, db: Session = Depends(get_db)):
     try:
         order = db.query(Order).get(id_order)
 
