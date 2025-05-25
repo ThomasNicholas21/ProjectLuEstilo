@@ -5,7 +5,7 @@ from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from typing import List
 from src.common.database import get_db
 from src.clients.models import Client
-from src.clients.serializer import ClientCreate, ClientUpdate, ClientResponse
+from src.clients.schemas import ClientCreate, ClientUpdate, ClientResponse
 
 
 client_router = APIRouter(prefix="/clients", tags=["Clients"])
