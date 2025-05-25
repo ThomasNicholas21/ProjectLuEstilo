@@ -18,7 +18,6 @@ from .schemas import (
     UserResponse,
     TokenResponse,
     TokenRefreshRequest,
-    UserRole
 )
 from .models import User
 from src.common.database import get_db
@@ -67,7 +66,10 @@ def register_user(user_data: UserRegister, db: Session = Depends(get_db)):
         db.refresh(new_user)
         return new_user
 
-    except Exception:
+    except HTTPException as e:
+        raise
+
+    except Exception as e:
         db.rollback()
         
         raise HTTPException(
@@ -106,6 +108,9 @@ async def login_user_with_form(
         )
 
         return TokenResponse(access_token=access_token, refresh_token=refresh_token)
+    
+    except HTTPException as e:
+        raise
 
     except Exception:
         db.rollback()
@@ -137,6 +142,9 @@ async def refresh_access_token(payload: TokenRefreshRequest):
         
         new_access_token = create_access_token(data={"sub": username})
         return TokenResponse(access_token=new_access_token, refresh_token=payload.refresh_token)
+    
+    except HTTPException as e:
+        raise
     
     except Exception as e:
         
