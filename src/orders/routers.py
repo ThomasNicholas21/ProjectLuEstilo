@@ -218,3 +218,26 @@ async def put_detail_order(id_order: int, order_update: OrderUpdate, db: Session
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Erro ao atualizar pedido: {str(e)}")
     
+
+
+@order_router.delete("{id_order}", response_model=OrderResponse)
+async def delete_detail_order(id_order: str, db: Session = Depends(get_db)):
+    try:
+        order = db.query(Order).get(id_order)
+
+        if not order:
+            raise HTTPException(status_code=404, detail="Pedido não encontrado.")
+        
+        db.delete(order)
+        db.commit()
+        
+        return order
+
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Erro ao salvar no banco de dados: {e}")
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Erro ao atualizar pedido: {str(e)}")
+    
