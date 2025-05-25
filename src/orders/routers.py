@@ -163,6 +163,7 @@ async def get_order(
     
     except Exception as e:
         db.rollback()
+        
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro interno ao processar pedido."
@@ -200,6 +201,7 @@ async def get_detail_order(
 
     except Exception as e:
         db.rollback()
+
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro interno ao processar pedido."
@@ -284,10 +286,20 @@ async def put_detail_order(
 
     except SQLAlchemyError as e:
         db.rollback()
+
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro ao atualizar pedido no banco de dados"
         )
+    
+    except Exception as e:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro interno ao processar pedido."
+        )
+
 
 
 @order_router.delete(
@@ -328,6 +340,7 @@ async def delete_detail_order(
     
     except Exception as e:
         db.rollback()
+
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro interno ao processar pedido."
