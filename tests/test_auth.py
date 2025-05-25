@@ -1,32 +1,6 @@
+# tests/test_auth.py
 import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from src.common.database import Base, get_db
-from src.main import app  
-
-
-SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
-engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-def override_get_db():
-    db = TestingSessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-app.dependency_overrides[get_db] = override_get_db
-
-
-@pytest.fixture(scope="module")
-def client():
-    Base.metadata.create_all(bind=engine)
-    with TestClient(app) as c:
-        yield c
-    Base.metadata.drop_all(bind=engine)
+from http import HTTPStatus
 
 
 def test_register_user(client):
@@ -35,7 +9,7 @@ def test_register_user(client):
         "password": "test_password",
         "role": "regular"
     })
-    assert response.status_code == 201
+    assert response.status_code == HTTPStatus.CREATED
     data = response.json()
     assert data["username"] == "test_user"
     assert data["role"] == "regular"
@@ -48,7 +22,7 @@ def test_register_existing_user(client):
         "password": "new_pass",
         "role": "admin"
     })
-    assert response.status_code == 400
+    assert response.status_code == HTTPStatus.BAD_REQUEST
     assert response.json()["detail"] == "Nome de usuário já está em uso."
 
 
@@ -57,7 +31,7 @@ def test_login_valid_user(client):
         "username": "test_user",
         "password": "test_password"
     })
-    assert response.status_code == 200
+    assert response.status_code == HTTPStatus.OK
     data = response.json()
     assert "access_token" in data
     assert "refresh_token" in data
@@ -69,7 +43,7 @@ def test_login_invalid_credentials(client):
         "username": "test_user",
         "password": "wrong_password"
     })
-    assert response.status_code == 401
+    assert response.status_code == HTTPStatus.UNAUTHORIZED
     assert response.json()["detail"] == "Credenciais inválidas."
 
 
@@ -83,7 +57,7 @@ def test_refresh_token_valid(client):
     response = client.post("/auth/refresh-token", json={
         "refresh_token": refresh_token
     })
-    assert response.status_code == 200
+    assert response.status_code == HTTPStatus.OK
     data = response.json()
     assert "access_token" in data
     assert data["refresh_token"] == refresh_token
@@ -94,5 +68,5 @@ def test_refresh_token_invalid(client):
     response = client.post("/auth/refresh-token", json={
         "refresh_token": "invalid.token.value"
     })
-    assert response.status_code == 401
+    assert response.status_code == HTTPStatus.UNAUTHORIZED
     assert response.json()["detail"] == "Refresh token inválido ou expirado."
