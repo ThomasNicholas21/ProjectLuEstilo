@@ -8,7 +8,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from src.products.models import Product
 from src.products.serializer import ProductResponse, ProductBase, ProductUpdate
 from src.common.database import get_db
-from typing import Optional, Union, List
+from typing import Optional, Union, List, Annotated
 from datetime import datetime
 import shutil
 import uuid
@@ -26,12 +26,19 @@ async def post_product(
     description: Optional[str] = Form(None),
     price: float = Form(...),
     stock: int = Form(...),
-    valid_date: Optional[str] = Form(None),
+    valid_date: Annotated[
+        Optional[datetime],
+        Form(
+            description="Data de validade no formato YYYY-MM-DD",
+            examples=["2025-12-31"]
+        )
+    ] = None,
     category: Optional[str] = Form(None),
     section: Optional[str] = Form(None),
     image: Optional[Union[UploadFile, str]] = File(None),
     db: Session = Depends(get_db)
 ):
+
     try:
         if stock < 0:
             raise HTTPException(
