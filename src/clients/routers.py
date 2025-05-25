@@ -51,7 +51,7 @@ async def post_client(
             detail="CPF ou email já cadastrado"
         )
     
-    except SQLAlchemyError:
+    except SQLAlchemyError as e:
         db.rollback()
 
         raise HTTPException(
@@ -59,7 +59,7 @@ async def post_client(
             detail="Erro interno ao buscar clientes"
         )
     
-    except Exception:
+    except Exception as e:
         db.rollback()
         
         raise HTTPException(
@@ -89,7 +89,7 @@ async def get_client(
 
         return query.offset(skip).limit(limit).all()
     
-    except SQLAlchemyError:
+    except SQLAlchemyError as e:
         db.rollback()
 
         raise HTTPException(
@@ -97,7 +97,7 @@ async def get_client(
             detail="Erro interno ao buscar clientes"
         )
     
-    except Exception:
+    except Exception as e:
         db.rollback()
 
         raise HTTPException(
@@ -140,7 +140,7 @@ async def put_detail_client(
             detail="Dados inválidos"
         )
     
-    except SQLAlchemyError:
+    except SQLAlchemyError as e:
         db.rollback()
 
         raise HTTPException(
@@ -148,7 +148,7 @@ async def put_detail_client(
             detail="Erro interno ao buscar clientes"
         )
     
-    except Exception:
+    except Exception as e:
         db.rollback()
         
         raise HTTPException(
@@ -189,7 +189,7 @@ async def delete_detail_client(
         
         return client
     
-    except SQLAlchemyError:
+    except SQLAlchemyError as e:
         db.rollback()
 
         raise HTTPException(
@@ -197,7 +197,7 @@ async def delete_detail_client(
             detail="Erro interno ao excluir cliente"
         )
     
-    except Exception:
+    except Exception as e:
         db.rollback()
         
         raise HTTPException(
