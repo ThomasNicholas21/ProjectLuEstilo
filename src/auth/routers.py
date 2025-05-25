@@ -78,7 +78,9 @@ async def login_user(user_data: UserLogin, db: Session = Depends(get_db)):
             detail="Credenciais inválidas."
         )
     
-    access_token = create_access_token(data={"sub": user.username})
+    access_token = create_access_token(
+        data={"sub": user.username, "role": user.role} 
+    )
     refresh_token = create_access_token(
         data={"sub": user.username},
         expires_delta=timedelta(days=7)
