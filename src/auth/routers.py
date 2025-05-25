@@ -3,7 +3,7 @@ from fastapi import (
     HTTPException, 
     Depends, 
     status,
-    )
+)
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import timedelta
@@ -17,7 +17,8 @@ from .schemas import (
     UserRegister,
     UserResponse,
     TokenResponse,
-    TokenRefreshRequest
+    TokenRefreshRequest,
+    UserRole
 )
 from .models import User
 from src.common.database import get_db
@@ -44,25 +45,35 @@ auth_router = APIRouter(
     }
 )
 def register_user(user_data: UserRegister, db: Session = Depends(get_db)):
-    existing_user = db.query(User).filter(User.username == user_data.username).first()
-    
-    if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Nome de usuário já está em uso."
+    try:
+        existing_user = db.query(User).filter(User.username == user_data.username).first()
+
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Nome de usuário já está em uso."
+            )
+        
+
+        hashed_password = get_password_hash(user_data.password)
+        new_user = User(
+            username=user_data.username,
+            password=hashed_password,
+            role=user_data.role.value  
         )
-    
-    hashed_password = get_password_hash(user_data.password)
-    new_user = User(
-        username=user_data.username,
-        password=hashed_password,
-        role=user_data.role.value  
-    )
-    
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-    return new_user
+
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+        return new_user
+
+    except Exception:
+        db.rollback()
+        
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro ao registrar usuário."
+        )
 
 
 @auth_router.post(
@@ -78,22 +89,31 @@ async def login_user_with_form(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)
 ):
-    user = db.query(User).filter(User.username == form_data.username).first()
+    try:
+        user = db.query(User).filter(User.username == form_data.username).first()
 
-    if not user or not verify_password(form_data.password, user.password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Credenciais inválidas."
+        if not user or not verify_password(form_data.password, user.password):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Credenciais inválidas."
+            )
+
+        access_token = create_access_token(
+            data={"sub": user.username, "role": user.role}
+        )
+        refresh_token = create_access_token(
+            data={"sub": user.username}, expires_delta=timedelta(days=7)
         )
 
-    access_token = create_access_token(
-        data={"sub": user.username, "role": user.role}
-    )
-    refresh_token = create_access_token(
-        data={"sub": user.username}, expires_delta=timedelta(days=7)
-    )
+        return TokenResponse(access_token=access_token, refresh_token=refresh_token)
 
-    return TokenResponse(access_token=access_token, refresh_token=refresh_token)
+    except Exception:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro ao autenticar usuário."
+        )
 
 
 @auth_router.post(
@@ -106,13 +126,21 @@ async def login_user_with_form(
     }
 )
 async def refresh_access_token(payload: TokenRefreshRequest):
-    username = decode_refresh_token(payload.refresh_token)
+    try:
+        username = decode_refresh_token(payload.refresh_token)
+        
+        if not username:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Refresh token inválido ou expirado."
+            )
+        
+        new_access_token = create_access_token(data={"sub": username})
+        return TokenResponse(access_token=new_access_token, refresh_token=payload.refresh_token)
     
-    if not username:
+    except Exception as e:
+        
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Refresh token inválido ou expirado."
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro inesperado."
         )
-    
-    new_access_token = create_access_token(data={"sub": username})
-    return TokenResponse(access_token=new_access_token, refresh_token=payload.refresh_token)
