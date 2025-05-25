@@ -1,32 +1,59 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, status
 from sqlalchemy.orm import Session
-from src.auth.security.token import get_password_hash
-from src.auth.serializer import UserRegister, UserResponse, UserLogin
-from src.auth.serializer import TokenResponse, TokenRefreshRequest
-from src.auth.models import User
 from datetime import timedelta
+from .security.token import (
+    get_password_hash,
+    verify_password,
+    create_access_token,
+    decode_refresh_token
+)
+from .schemas import (
+    UserRegister,
+    UserResponse,
+    UserLogin,
+    TokenResponse,
+    TokenRefreshRequest
+)
+from .models import User
 from src.common.database import get_db
-from src.auth.security.token import verify_password, create_access_token
-from src.auth.security.token import decode_refresh_token
 
 
-auth_router = APIRouter(prefix="/auth", tags=["User"])
+auth_router = APIRouter(
+    prefix="/auth",
+    tags=["Authentication"],
+    responses={
+        401: {"description": "Credenciais inválidas"},
+        400: {"description": "Requisição mal formatada"}
+    }
+)
 
 
-@auth_router.post("/register", response_model=UserResponse)
-def register(user_data: UserRegister, db: Session = Depends(get_db)):
+@auth_router.post(
+    "/register",
+    response_model=UserResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Registrar novo usuário",
+    responses={
+        201: {"description": "Usuário criado com sucesso"},
+        400: {"description": "Nome de usuário já existe"}
+    }
+)
+def register_user(user_data: UserRegister, db: Session = Depends(get_db)):
     existing_user = db.query(User).filter(User.username == user_data.username).first()
-
+    
     if existing_user:
-        raise HTTPException(status_code=400, detail="Username já está em uso.")
-
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Nome de usuário já está em uso."
+        )
+    
     hashed_password = get_password_hash(user_data.password)
     new_user = User(
         username=user_data.username,
         password=hashed_password,
-        role=user_data.role.value
+        role=user_data.role.value  
     )
-
+    
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
