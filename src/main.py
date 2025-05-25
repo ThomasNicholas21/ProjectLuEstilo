@@ -33,10 +33,3 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-@app.get("/", tags=["root"])
-async def read_root():
-    return {
-        "message": f"{settings.PROJECT_NAME} testando server"
-        }
