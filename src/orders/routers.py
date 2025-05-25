@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
-from typing import List
+from typing import List, Optional
 from datetime import datetime
 from src.common.database import get_db
 from src.orders.models import Order, OrderItem
@@ -67,4 +67,55 @@ async def post_order(order: OrderCreate, db: Session = Depends(get_db)):
     except Exception as e:
         db.rollback()
 
+        raise HTTPException(status_code=500, detail=f"Erro inesperado: {str(e)}")
+
+
+@order_router.get("/", response_model=List[OrderResponse])
+def get_order(
+    id_order: Optional[int] = Query(default=None),
+    id_product: Optional[int] = Query(default=None),
+    id_client: Optional[int] = Query(default=None),
+    status: Optional[str] = Query(default=None),
+    section: Optional[str] = Query(default=None),
+    start_date: Optional[datetime] = Query(default=None),
+    end_date: Optional[datetime] = Query(default=None),
+    skip: int = 0,
+    limit: int = 10,
+    db: Session = Depends(get_db)
+):
+    try:
+        query = db.query(Order)
+
+        if section:
+            query = query.join(Order.items).join(OrderItem.product).filter(Product.section.ilike(f"%{section}%"))
+
+        if id_order:
+            query = query.filter(Order.id_order == id_order)
+
+        if id_product:
+            query = query.join(Order.items).join(OrderItem.product).filter(Product.id_product == id_product)
+
+
+        if id_client:
+            query = query.filter(Order.id_client == id_client)
+
+        if status:
+            query = query.filter(Order.status == status)
+
+        if start_date and end_date:
+            query = query.filter(Order.created_at.between(start_date, end_date))
+
+        elif start_date:
+            query = query.filter(Order.created_at >= start_date)
+
+        elif end_date:
+            query = query.filter(Order.created_at <= end_date)
+
+        orders = query.offset(skip).limit(limit).all()
+        return orders
+
+    except SQLAlchemyError as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar pedidos: {e}")
+
+    except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro inesperado: {str(e)}")
