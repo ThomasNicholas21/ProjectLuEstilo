@@ -6,6 +6,7 @@ from src.common.database import get_db
 from .models import Client
 from .schemas import ClientCreate, ClientUpdate, ClientResponse
 from src.auth.security.token import get_current_user 
+from src.utils.role_validator import check_admin_permission
 
 
 client_router = APIRouter(
@@ -16,14 +17,6 @@ client_router = APIRouter(
         401: {"description": "Credenciais inválidas"}
     }
 )
-
-
-def check_admin_permission(current_user: dict):
-    if current_user.get("role") != "admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Acesso restrito a administradores"
-        )
 
 
 @client_router.post(
