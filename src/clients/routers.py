@@ -75,8 +75,8 @@ async def post_client(
     responses={200: {"description": "Lista de clientes paginada"}}
 )
 async def get_client(
-    name: str | None = Query(None, example="João"),
-    email: str | None = Query(None, example="joao@email.com"),
+    name: str | None = Query(None, examples="João"),
+    email: str | None = Query(None, examples="joao@email.com"),
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
     db: Session = Depends(get_db),
