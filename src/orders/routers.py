@@ -71,7 +71,7 @@ async def post_order(order: OrderCreate, db: Session = Depends(get_db)):
 
 
 @order_router.get("/", response_model=List[OrderResponse])
-def get_order(
+async def get_order(
     id_order: Optional[int] = Query(default=None),
     id_product: Optional[int] = Query(default=None),
     id_client: Optional[int] = Query(default=None),
