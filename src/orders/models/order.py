@@ -1,13 +1,6 @@
-from sqlalchemy import Column, Integer, ForeignKey, Float, DateTime, Enum
+from sqlalchemy import Column, Integer, ForeignKey, Float, DateTime, String
 from sqlalchemy.orm import relationship
 from src.common.database import Base
-from enum import Enum as PyEnum
-
-class OrderStatus(PyEnum):
-    PENDING = "pendente"
-    PROCESSING = "processando"
-    COMPLETED = "finalizado"
-    CANCELLED = "cancelado"
     
 
 class Order(Base):
@@ -18,7 +11,7 @@ class Order(Base):
     total_amount = Column(Integer, nullable=False)
     total_price = Column(Float, nullable=False)
     created_at = Column(DateTime, nullable=True)
-    status = Column(Enum(OrderStatus), default=OrderStatus.PENDING)
+    status = Column(String(20), nullable=False)
     
     client = relationship("Client", back_populates="orders")
     items = relationship("OrderItem", back_populates="order")
