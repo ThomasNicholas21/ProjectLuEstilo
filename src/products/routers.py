@@ -1,26 +1,47 @@
-from fastapi import (
-    APIRouter, Depends, HTTPException, 
-    UploadFile, File, Form, Query
-    )
-from pydantic import ValidationError
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
-from src.products.models import Product
-from src.products.serializer import ProductResponse, ProductBase, ProductUpdate, ProductCreate
-from src.common.database import get_db
-from typing import Optional, Union, List, Annotated
+from typing import Optional, Annotated, List, Union
 from datetime import datetime
-import shutil
+from pathlib import Path
+from src.auth.security.token import get_current_user
+from src.common.database import get_db
+from src.utils.role_validator import check_admin_permission
+from .models import Product
+from .schemas import ProductCreate, ProductResponse, ProductUpdate
 import uuid
 import os
+import shutil
 
 
-product_router = APIRouter(prefix="/products", tags=["Products"])
-UPLOAD_DIR = "static/images/products"
+product_router = APIRouter(
+    prefix="/products",
+    tags=["Produtos"],
+    responses={
+        403: {"description": "Acesso negado"},
+        401: {"description": "Credenciais inválidas"}
+    }
+)
 
 
-@product_router.post("/", response_model=ProductResponse)
+
+UPLOAD_DIR = Path("media")
+UPLOAD_DIR.mkdir(exist_ok=True)
+ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png"]
+
+
+@product_router.post(
+    "/",
+    response_model=ProductResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Criar novo produto",
+    responses={
+        422: {"description": "Dados inválidos"},
+        415: {"description": "Formato de imagem não suportado"}
+    }
+)
 async def post_product(
+    current_user: dict = Depends(get_current_user),
     name: Union[str, None] = Form(...),
     bar_code: Optional[str] = Form(None),
     description: Optional[str] = Form(None),
@@ -38,88 +59,65 @@ async def post_product(
     image: Optional[Union[UploadFile, str]] = File(None),
     db: Session = Depends(get_db)
 ):
+    check_admin_permission(current_user)
+    
     try:
-        if not name or name.strip() == "":
-            raise HTTPException(status_code=422, detail="O nome do produto é obrigatório.")
-        
-        if price is None:
-            raise HTTPException(status_code=422, detail="O preço é obrigatório.")
-        
-        if stock is None:
-            raise HTTPException(status_code=422, detail="O estoque é obrigatório.")
-
-        name = name.strip()
-        bar_code = None if bar_code == "" else bar_code
-        description = None if description == "" else description
-        category = None if category == "" else category
-        section = None if section == "" else section
-        valid_date = None if valid_date == "" else valid_date
-
-        try:
-            price_value = float(price)
-
-        except (ValueError, TypeError):
-            raise HTTPException(status_code=422, detail="Preço inválido. Use um número.")
-
-        try:
-            stock_value = int(stock)
-
-        except (ValueError, TypeError):
-            raise HTTPException(status_code=422, detail="Estoque inválido. Use um número inteiro.")
-        
-        if stock_value < 0:
-            raise HTTPException(status_code=422, detail="O estoque não pode ser menor que 0.")
-
         parsed_valid_date = None
         if valid_date:
             try:
                 parsed_valid_date = datetime.strptime(valid_date, "%Y-%m-%d")
-
             except ValueError:
-                raise HTTPException(status_code=422, detail="Formato de data inválido. Use YYYY-MM-DD")
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail="Formato de data inválido. Use YYYY-MM-DD"
+                )
 
         image_path = None
-        if isinstance(image, str) and image == "":
-            image = None
-
-        if image and hasattr(image, "filename") and image.filename:
-            if image.content_type not in ["image/jpeg", "image/png"]:
-                raise HTTPException(status_code=400, detail="Formato de imagem não suportado.")
-
-            ext = image.filename.split('.')[-1]
-            filename = f"{uuid.uuid4()}.{ext}"
-            os.makedirs(UPLOAD_DIR, exist_ok=True)
-            image_path = os.path.join(UPLOAD_DIR, filename)
-
+        if image:
+            if image.content_type not in ALLOWED_IMAGE_TYPES:
+                raise HTTPException(
+                    status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+                    detail="Formatos suportados: JPEG, PNG"
+                )
+                
+            file_ext = image.filename.split('.')[-1]
+            filename = f"{uuid.uuid4()}.{file_ext}"
+            image_path = str(UPLOAD_DIR / filename)
+            
             with open(image_path, "wb") as buffer:
                 shutil.copyfileobj(image.file, buffer)
 
         product_data = ProductCreate(
-            name=name,
-            bar_code=bar_code,
-            description=description,
-            price=price_value,
-            stock=stock_value,
+            name=name.strip(),
+            bar_code=bar_code.strip() if bar_code else None,
+            description=description.strip() if description else None,
+            price=price,
+            stock=stock,
             valid_date=parsed_valid_date,
-            category=category,
-            section=section,
+            category=category.strip() if category else None,
+            section=section.strip() if section else None,
             images=image_path
         )
 
         product = Product(**product_data.model_dump(exclude_none=True))
-
+        
         db.add(product)
         db.commit()
         db.refresh(product)
         return product
 
-    except SQLAlchemyError:
+    except SQLAlchemyError as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail="Erro ao salvar produto no banco de dados.")
-    except HTTPException:
-        raise
+
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro ao salvar produto no banco de dados"
+        )
+    
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro inesperado: {str(e)}")
+        db.rollback()
+
+        raise HTTPException(status_code=500, detail=f"Erro ao atualizar cliente: {str(e)}")
 
 
 @product_router.get("/", response_model=List[ProductResponse])
