@@ -89,6 +89,9 @@ async def get_client(
 
         return query.offset(skip).limit(limit).all()
     
+    except HTTPException as e:
+        raise 
+    
     except SQLAlchemyError as e:
         db.rollback()
 
@@ -109,7 +112,7 @@ async def get_client(
 @client_router.get(
     "/{id_client}",
     response_model=ClientResponse,
-    summary="Buscar cliente por ID",
+    summary="Detalhes de um cliente",
     responses={
         200: {"description": "Cliente encontrado com sucesso"},
         404: {"description": "Cliente não encontrado"}
@@ -129,6 +132,9 @@ async def get_detail_client(
             )
         
         return client
+    
+    except HTTPException as e:
+        raise 
 
     except SQLAlchemyError:
         db.rollback()
@@ -159,7 +165,7 @@ async def put_detail_client(
 ):
     check_admin_permission(current_user)
     
-    client = db.query(Client).get(id_client)
+    client = db.get(Client, id_client)
     if not client:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -232,7 +238,10 @@ async def delete_detail_client(
         db.commit()
         
         return client
-    
+
+    except HTTPException as e:
+        raise 
+
     except SQLAlchemyError as e:
         db.rollback()
 
