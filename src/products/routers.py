@@ -297,6 +297,12 @@ async def delete_detail_product(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Produto ID {product_id} não encontrado"
             )
+        
+        if product.order_items:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Produto associado a uma order"
+            )
 
         db.delete(product)
         db.commit()
