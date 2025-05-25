@@ -1,20 +1,50 @@
-# src/routers/client.py
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from typing import List
 from src.common.database import get_db
-from src.clients.models import Client
-from src.clients.schemas import ClientCreate, ClientUpdate, ClientResponse
+from .models import Client
+from .schemas import ClientCreate, ClientUpdate, ClientResponse
+from src.auth.security.token import get_current_user 
 
 
-client_router = APIRouter(prefix="/clients", tags=["Clients"])
+client_router = APIRouter(
+    prefix="/clients",
+    tags=["Clientes"],
+    responses={
+        403: {"description": "Acesso negado"},
+        401: {"description": "Credenciais inválidas"}
+    }
+)
 
 
-@client_router.post("/", response_model=ClientResponse)
-async def post_client(client: ClientCreate, db: Session = Depends(get_db)):
+def check_admin_permission(current_user: dict):
+    if current_user.get("role") != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acesso restrito a administradores"
+        )
+
+
+@client_router.post(
+    "/",
+    response_model=ClientResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Criar novo cliente",
+    responses={
+        201: {"description": "Cliente criado com sucesso"},
+        400: {"description": "CPF ou email já cadastrado"}
+    }
+)
+async def post_client(
+    client: ClientCreate,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user) 
+):
+    check_admin_permission(current_user)
+    
     try:
-        db_client = Client(**client.__dict__)
+        db_client = Client(**client.model_dump())
         db.add(db_client)
         db.commit()
         db.refresh(db_client)
@@ -22,16 +52,10 @@ async def post_client(client: ClientCreate, db: Session = Depends(get_db)):
     
     except IntegrityError as e:
         db.rollback()
-
         raise HTTPException(
-            status_code=400,
-            detail=f"Campos únicos violados: {e}"
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="CPF ou email já cadastrado"
         )
-    
-    except SQLAlchemyError as e:
-        db.rollback()
-
-        raise HTTPException(status_code=500, detail=f"Erro ao salvar no banco de dados: {e}")
 
 
 @client_router.get("/", response_model=List[ClientResponse])
