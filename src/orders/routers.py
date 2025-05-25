@@ -206,80 +206,88 @@ async def get_detail_order(
         )
 
 
-@order_router.put("/{id_order}", response_model=OrderResponse)
-async def put_detail_order(id_order: int, order_update: OrderUpdate, db: Session = Depends(get_db)):
+@order_router.put(
+    "/{id_order}",
+    response_model=OrderResponse,
+    summary="Atualizar pedido",
+    responses={
+        404: {"description": "Pedido ou recurso associado não encontrado"},
+        400: {"description": "Estoque insuficiente"}
+    }
+)
+async def put_detail_order(
+    id_order: int,
+    order_update: OrderUpdate,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    check_admin_permission(current_user)
     try:
         order = db.query(Order).get(id_order)
         if not order:
-            raise HTTPException(status_code=404, detail="Pedido não encontrado")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Pedido ID {id_order} não encontrado"
+            )
 
-        update_data = order_update.model_dump(exclude_unset=True)
-
-        if "id_client" in update_data:
-            new_client = db.query(Client).filter(Client.id_client == update_data["id_client"]).first()
-            if not new_client:
+        if order_update.id_client:
+            if not db.query(Client).get(order_update.id_client):
                 raise HTTPException(
-                    status_code=404,
-                    detail=f"Cliente ID {update_data['id_client']} não encontrado"
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Cliente ID {order_update.id_client} não encontrado"
                 )
-            order.id_client = update_data["id_client"]
+            order.id_client = order_update.id_client
+            
+        if order_update.status:
+            order.status = order_update.status
 
-        if "status" in update_data:
-            order.status = update_data["status"]
-
-        if "products" in update_data and update_data["products"]:
+        if order_update.products:
             for item in order.items:
+                product = db.query(Product).get(item.id_product)
+                product.stock += item.amount
                 db.delete(item)
-            db.flush()
-
+            
             total_price = 0
             total_amount = 0
             new_items = []
-
-            for item_data in update_data["products"]:
-                product = db.query(Product).filter(Product.id_product == item_data.id_product).first()
+            
+            for item_data in order_update.products:
+                product = db.query(Product).get(item_data.id_product)
                 if not product:
                     raise HTTPException(
-                        status_code=404,
+                        status_code=status.HTTP_404_NOT_FOUND,
                         detail=f"Produto ID {item_data.id_product} não encontrado"
                     )
-
+                
                 if product.stock < item_data.amount:
                     raise HTTPException(
-                        status_code=400,
-                        detail=f"Estoque insuficiente para o produto ID {item_data.id_product}"
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Estoque insuficiente para {product.name}"
                     )
-
+                
                 product.stock -= item_data.amount
-                db.add(product)
-
                 total_price += product.price * item_data.amount
                 total_amount += item_data.amount
-
-                order_item = OrderItem(
+                
+                new_items.append(OrderItem(
                     id_product=item_data.id_product,
                     amount=item_data.amount,
-                    unit_price=product.price,
-                    order=order
-                )
-                new_items.append(order_item)
-
+                    unit_price=product.price
+                ))
+            
             order.items = new_items
             order.total_price = total_price
             order.total_amount = total_amount
 
         db.commit()
-        db.refresh(order)
         return order
 
     except SQLAlchemyError as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Erro ao salvar no banco de dados: {e}")
-
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=f"Erro ao atualizar pedido: {str(e)}")
-    
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro ao atualizar pedido no banco de dados"
+        )
 
 
 @order_router.delete("{id_order}", response_model=OrderResponse)
