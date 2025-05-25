@@ -50,7 +50,7 @@ async def post_product(
         Optional[str],
         Form(
             description="Data de validade no formato YYYY-MM-DD",
-            exampless=["2025-12-31"]
+            example=["2025-12-31"]
         )
     ] = None,
     category: Optional[str] = Form(None),
@@ -129,11 +129,11 @@ async def post_product(
     }
 )
 async def get_products(
-    category: Optional[str] = Query(None, examples="eletrônicos", description="Filtrar por categoria"),
-    price: Optional[float] = Query(None, examples=99.90, description="Filtrar por preço exato"),
-    available: Optional[bool] = Query(None, examples=True, description="Filtrar por disponibilidade em estoque"),
-    skip: int = Query(0, ge=0, examples=0),
-    limit: int = Query(10, ge=1, le=100, examples=10),
+    category: Optional[str] = Query(None, example="eletrônicos", description="Filtrar por categoria"),
+    price: Optional[float] = Query(None, example=99.90, description="Filtrar por preço exato"),
+    available: Optional[bool] = Query(None, example=True, description="Filtrar por disponibilidade em estoque"),
+    skip: int = Query(0, ge=0, example=0),
+    limit: int = Query(10, ge=1, le=100, example=10),
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):

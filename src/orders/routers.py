@@ -112,15 +112,15 @@ async def post_order(
     responses={200: {"description": "Lista de pedidos paginada"}}
 )
 async def get_order(
-    id_order: Optional[int] = Query(None, examples=1, description="Filtrar por ID do pedido"),
-    id_product: Optional[int] = Query(None, examples=1, description="Filtrar por ID do produto"),
-    id_client: Optional[int] = Query(None, examples=1, description="Filtrar por ID do cliente"),
-    status: Optional[str] = Query(None, examples="pendente", description="Status do pedido"),
-    section: Optional[str] = Query(None, examples="eletrônicos", description="Seção dos produtos"),
-    start_date: Optional[datetime] = Query(None, examples="2024-01-01T00:00:00Z", description="Data inicial"),
-    end_date: Optional[datetime] = Query(None, examples="2024-12-31T23:59:59Z", description="Data final"),
-    skip: int = Query(0, ge=0, examples=0),
-    limit: int = Query(10, ge=1, le=100, examples=10),
+    id_order: Optional[int] = Query(None, example=1, description="Filtrar por ID do pedido"),
+    id_product: Optional[int] = Query(None, example=1, description="Filtrar por ID do produto"),
+    id_client: Optional[int] = Query(None, example=1, description="Filtrar por ID do cliente"),
+    status: Optional[str] = Query(None, example="pendente", description="Status do pedido"),
+    section: Optional[str] = Query(None, example="eletrônicos", description="Seção dos produtos"),
+    start_date: Optional[datetime] = Query(None, example="2024-01-01T00:00:00Z", description="Data inicial"),
+    end_date: Optional[datetime] = Query(None, example="2024-12-31T23:59:59Z", description="Data final"),
+    skip: int = Query(0, ge=0, example=0),
+    limit: int = Query(10, ge=1, le=100, example=10),
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
