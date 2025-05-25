@@ -6,6 +6,7 @@ from src.common.database import create_db_engine
 from src.clients.routers import client_router
 from src.auth.routers import auth_router
 from src.products.routers import product_router
+from src.orders.routers import order_router
 
 
 @asynccontextmanager
@@ -23,6 +24,7 @@ app = FastAPI(
 app.include_router(client_router)
 app.include_router(auth_router)
 app.include_router(product_router)
+app.include_router(order_router)
 
 app.add_middleware(
     CORSMiddleware,
