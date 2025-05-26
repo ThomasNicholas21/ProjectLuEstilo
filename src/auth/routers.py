@@ -51,7 +51,7 @@ def register_user(user_data: UserRegister, db: Session = Depends(get_db)):
         if existing_user:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Nome de usuário já está em uso: {e}"
+                detail=f"Nome de usuário já está em uso."
             )
         
 
@@ -108,7 +108,7 @@ async def login_user_with_form(
         if not user or not verify_password(form_data.password, user.password):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail=f"Credenciais inválidas: {e}"
+                detail=f"Credenciais inválidas."
             )
 
         access_token = create_access_token(
@@ -158,7 +158,7 @@ async def refresh_access_token(payload: TokenRefreshRequest):
         if not username:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail=f"Refresh token inválido ou expirado: {e}"
+                detail=f"Refresh token inválido ou expirado."
             )
         
         new_access_token = create_access_token(data={"sub": username})
