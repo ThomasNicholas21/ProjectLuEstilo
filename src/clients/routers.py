@@ -48,7 +48,7 @@ async def post_client(
         
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="CPF ou email já cadastrado"
+            detail=f"CPF ou email já cadastrado: {e}"
         )
     
     except SQLAlchemyError as e:
@@ -56,7 +56,7 @@ async def post_client(
 
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro interno ao buscar clientes"
+            detail=f"Erro inesperado no banco de dados: {e}"
         )
     
     except Exception as e:
@@ -64,7 +64,7 @@ async def post_client(
         
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro interno"
+            detail=f"Erro ao criar cliente: {e}"
         )
 
 
@@ -90,14 +90,16 @@ async def get_client(
         return query.offset(skip).limit(limit).all()
     
     except HTTPException as e:
+        db.rollback()
+        
         raise 
 
     except SQLAlchemyError as e:
         db.rollback()
-
+        
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro interno ao buscar clientes"
+            detail=f"Erro inesperado no banco de dados: {e}"
         )
     
     except Exception as e:
@@ -105,7 +107,7 @@ async def get_client(
 
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro interno"
+            detail=f"Erro ao buscar cliente: {e}"
         )
     
 
@@ -134,20 +136,24 @@ async def get_detail_client(
         return client
     
     except HTTPException as e:
+        db.rollback()
+
         raise 
 
-    except SQLAlchemyError:
+    except SQLAlchemyError as e:
         db.rollback()
+
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro interno ao buscar cliente"
+            detail=f"Erro inesperado no banco de dados: {e}"
         )
 
     except Exception:
         db.rollback()
+
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro interno"
+            detail=f"Erro ao buscar cliente: {e}"
         )
 
 
@@ -182,9 +188,13 @@ async def put_detail_client(
         return client
     
     except HTTPException as e:
+        db.rollback()
+
         raise
     
     except IntegrityError as e:
+        db.rollback()
+
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Dados inválidos"
@@ -195,7 +205,7 @@ async def put_detail_client(
 
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro interno ao buscar clientes"
+            detail=f"Erro inesperado no banco de dados: {e}"
         )
     
     except Exception as e:
@@ -203,7 +213,7 @@ async def put_detail_client(
         
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro interno"
+            detail=f"Erro ao atualizar o client: {e}"
         )
 
 
@@ -240,6 +250,8 @@ async def delete_detail_client(
         return client
 
     except HTTPException as e:
+        db.rollback()
+
         raise 
 
     except SQLAlchemyError as e:
@@ -247,7 +259,7 @@ async def delete_detail_client(
 
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro interno ao excluir cliente"
+            detail=f"Erro inesperado no banco de dados: {e}"
         )
     
     except Exception as e:
@@ -255,5 +267,5 @@ async def delete_detail_client(
         
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro interno"
+            detail=f"Erro ao deletar cliente: {e}"
         )

@@ -88,12 +88,18 @@ async def post_order(
         db.refresh(new_order)
         return new_order
 
+
+    except HTTPException as e:
+        db.rollback()
+
+        raise
+
     except SQLAlchemyError as e:
         db.rollback()
 
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro ao processar pedido no banco de dados"
+            detail=f"Erro inesperado no banco de dados: {e}"
         )
     
     except Exception as e:
@@ -101,7 +107,7 @@ async def post_order(
 
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro interno ao processar pedido."
+            detail=f"Erro ao criar pedido: {e}"
         )
 
 
@@ -158,7 +164,7 @@ async def get_order(
 
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro ao consultar banco de dados"
+            detail=f"Erro inesperado no banco de dados: {e}"
         )
     
     except Exception as e:
@@ -166,7 +172,7 @@ async def get_order(
         
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro interno ao processar pedido."
+            detail=f"Erro ao buscar pedido: {e}"
         )
 
 
@@ -192,6 +198,8 @@ async def get_detail_order(
         return order
     
     except HTTPException as e:
+        db.rollback()
+
         raise
 
     except SQLAlchemyError as e:
@@ -199,7 +207,7 @@ async def get_detail_order(
 
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro ao consultar banco de dados"
+            detail=f"Erro inesperado no banco de dados: {e}"
         )
 
     except Exception as e:
@@ -207,7 +215,7 @@ async def get_detail_order(
 
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro interno ao processar pedido."
+            detail=f"Erro ao consultar cliente: {e}"
         )
 
 
@@ -288,6 +296,8 @@ async def put_detail_order(
         return order
 
     except HTTPException as e:
+        db.rollback()
+
         raise
 
     except SQLAlchemyError as e:
@@ -295,7 +305,7 @@ async def put_detail_order(
 
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro ao atualizar pedido no banco de dados"
+            detail=f"Erro inesperado no banco de dados: {e}"
         )
     
     except Exception as e:
@@ -303,7 +313,7 @@ async def put_detail_order(
 
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro interno ao processar pedido."
+            detail=f"Erro ao atualizar pedido {e}"
         )
 
 
@@ -336,6 +346,8 @@ async def delete_detail_order(
         return order
     
     except HTTPException as e:
+        db.rollback()
+
         raise
 
     except SQLAlchemyError as e:
@@ -343,7 +355,7 @@ async def delete_detail_order(
 
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro ao consultar banco de dados"
+            detail=f"Erro inesperado no banco de dados: {e}"
         )
     
     except Exception as e:
@@ -351,6 +363,6 @@ async def delete_detail_order(
 
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro interno ao processar pedido."
+            detail=f"Erro ao deletar pedido: {e}"
         )
     

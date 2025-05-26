@@ -6,6 +6,7 @@ from fastapi import (
 )
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
 from datetime import timedelta
 from .security.token import (
     get_password_hash,
@@ -50,7 +51,7 @@ def register_user(user_data: UserRegister, db: Session = Depends(get_db)):
         if existing_user:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Nome de usuário já está em uso."
+                detail=f"Nome de usuário já está em uso: {e}"
             )
         
 
@@ -67,14 +68,24 @@ def register_user(user_data: UserRegister, db: Session = Depends(get_db)):
         return new_user
 
     except HTTPException as e:
+        db.rollback()
+        
         raise
+
+    except SQLAlchemyError as e:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro inesperado no banco de dados: {e}"
+        )
 
     except Exception as e:
         db.rollback()
         
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro ao registrar usuário."
+            detail=f"Erro ao registrar usuário: {e}"
         )
 
 
@@ -97,7 +108,7 @@ async def login_user_with_form(
         if not user or not verify_password(form_data.password, user.password):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Credenciais inválidas."
+                detail=f"Credenciais inválidas: {e}"
             )
 
         access_token = create_access_token(
@@ -110,14 +121,24 @@ async def login_user_with_form(
         return TokenResponse(access_token=access_token, refresh_token=refresh_token)
     
     except HTTPException as e:
+        db.rollback()
+
         raise
 
-    except Exception:
+    except SQLAlchemyError as e:
         db.rollback()
 
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro ao autenticar usuário."
+            detail=f"Erro inesperado no banco de dados: {e}"
+        )
+    
+    except Exception as e:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao realizar login: {e}"
         )
 
 
@@ -137,7 +158,7 @@ async def refresh_access_token(payload: TokenRefreshRequest):
         if not username:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Refresh token inválido ou expirado."
+                detail=f"Refresh token inválido ou expirado: {e}"
             )
         
         new_access_token = create_access_token(data={"sub": username})
@@ -145,10 +166,15 @@ async def refresh_access_token(payload: TokenRefreshRequest):
     
     except HTTPException as e:
         raise
-    
-    except Exception as e:
-        
+
+    except SQLAlchemyError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro inesperado."
+            detail=f"Erro inesperado no banco de dados: {e}"
+        )
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao realizar refresh_token: {e}"
         )

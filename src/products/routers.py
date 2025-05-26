@@ -108,6 +108,8 @@ async def post_product(
         return product
     
     except HTTPException as e:
+        db.rollback()
+
         raise
 
     except SQLAlchemyError as e:
@@ -115,7 +117,7 @@ async def post_product(
 
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro ao salvar produto no banco de dados: {e}"
+            detail=f"Erro inesperado no banco de dados: {e}"
         )
     
     except Exception as e:
@@ -167,7 +169,7 @@ async def get_products(
     except Exception as e:
         db.rollback()
 
-        raise HTTPException(status_code=500, detail=f"Erro insperado: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar produto: {e}")
     
 
 @product_router.get(
@@ -193,18 +195,23 @@ async def get_detail_product(
             )
         return product
     
+    except HTTPException as e:
+        db.rollback()
+        
+        raise
+
     except SQLAlchemyError as e:
         db.rollback()
 
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro ao buscar produto"
+            detail=f"Erro inesperado no banco de dados: {e}"
         )
     
     except Exception as e:
         db.rollback()
 
-        raise HTTPException(status_code=500, detail=f"Erro insperado: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar produto: {e}")
 
 
 @product_router.put(
@@ -262,23 +269,28 @@ async def put_detail_product(
         db.commit()
         db.refresh(product)
         return product
+    
+    except HTTPException as e:
+        db.rollback()
+
+        raise
 
     except SQLAlchemyError as e:
         db.rollback()
 
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro ao atualizar produto"
+            detail=f"Erro inesperado no banco de dados: {e}"
         )
     
     except Exception as e:
         db.rollback()
 
-        raise HTTPException(status_code=500, detail=f"Erro insperado: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao atualizar produto: {e}")
 
 
 @product_router.delete(
-    "/{product_id}",
+    "/{id_product}",
     response_model=ProductResponse,
     summary="Excluir produto",
     responses={
@@ -289,18 +301,18 @@ async def put_detail_product(
     }
 )
 async def delete_detail_product(
-    product_id: int,
+    id_product: int,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
     check_admin_permission(current_user)
     
     try:
-        product = db.query(Product).get(product_id)
+        product = db.query(Product).get(id_product)
         if not product:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Produto ID {product_id} não encontrado"
+                detail=f"Produto ID {id_product} não encontrado"
             )
         
         if product.order_items:
@@ -312,6 +324,11 @@ async def delete_detail_product(
         db.delete(product)
         db.commit()
         return product
+    
+    except HTTPException as e:
+        db.rollback()
+
+        raise
 
     except SQLAlchemyError as e:
         db.rollback()
