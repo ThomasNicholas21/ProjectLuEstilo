@@ -111,7 +111,7 @@ async def get_client(
 
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro ao buscar cliente: {e}"
+            detail=f"Erro ao buscar clientes: {e}"
         )
     
     except HTTPException as e:
@@ -137,6 +137,7 @@ async def get_detail_client(
 ):
     try:
         client = db.get(Client, id_client)
+        
         if not client:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,

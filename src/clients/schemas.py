@@ -1,6 +1,7 @@
 from pydantic import BaseModel, EmailStr, Field, field_validator, ConfigDict
 from src.utils.cpf_validator import cpf_validator
 
+
 class CPFValidatorMixin:
     @field_validator("cpf")
     @classmethod

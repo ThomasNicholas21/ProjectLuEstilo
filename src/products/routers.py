@@ -13,6 +13,7 @@ from sentry_sdk import capture_exception
 import uuid
 import shutil
 
+
 product_router = APIRouter(
     prefix="/products",
     tags=["Produtos"],
@@ -21,7 +22,6 @@ product_router = APIRouter(
         401: {"description": "Credenciais inválidas"}
     }
 )
-
 
 
 UPLOAD_DIR = Path("media")
@@ -213,7 +213,7 @@ async def get_detail_product(
         capture_exception(e)
         db.rollback()
 
-        raise HTTPException(status_code=500, detail=f"Erro ao buscar produto: {e}")
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar produtos: {e}")
     
     except HTTPException as e:
         capture_exception(e)
@@ -334,7 +334,6 @@ async def put_detail_product(
         raise
 
 
-
 @product_router.delete(
     "/{id_product}",
     response_model=ProductResponse,
@@ -364,7 +363,7 @@ async def delete_detail_product(
         if product.order_items:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Produto associado a uma order"
+                detail=f"Não é possível excluir um produto associado a uma order."
             )
 
         db.delete(product)
@@ -374,16 +373,20 @@ async def delete_detail_product(
     except SQLAlchemyError as e:
         capture_exception(e)
         db.rollback()
+
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro ao excluir produto"
+            detail=f"Erro inesperado no banco de dados: {e}"
         )
     
     except Exception as e:
         capture_exception(e)
         db.rollback()
 
-        raise HTTPException(status_code=500, detail=f"Erro insperado: {str(e)}")
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Erro ao excluir produto: {e}"
+        )
 
     except HTTPException as e:
         capture_exception(e)

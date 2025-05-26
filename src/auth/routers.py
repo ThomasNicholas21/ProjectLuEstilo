@@ -52,10 +52,9 @@ async def register_user(user_data: UserRegister, db: Session = Depends(get_db)):
         if existing_user:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Nome de usuário já está em uso."
+                detail=f"Nome de usuário já existe."
             )
         
-
         hashed_password = get_password_hash(user_data.password)
         new_user = User(
             username=user_data.username,
@@ -180,5 +179,5 @@ async def refresh_access_token(payload: TokenRefreshRequest):
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro ao realizar refresh_token: {e}"
+            detail=f"Erro ao realizar refresh token: {e}"
         )

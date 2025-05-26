@@ -24,7 +24,7 @@ order_router = APIRouter(
     responses={
         403: {"description": "Acesso negado"},
         401: {"description": "Credenciais inválidas"},
-        404: {"description": "Recurso não encontrado"}
+        404: {"description": "Produto não encontrado"}
     }
 )
 
@@ -62,7 +62,7 @@ async def post_order(
             if product.stock < item.amount:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Estoque insuficiente para {product.name} (ID {product.id_product})"
+                    detail=f"Estoque insuficiente Produto ID {product.id_product} (Quantidade em estoque {product.stock})"
                 )
 
             product.stock -= item.amount
@@ -234,7 +234,7 @@ async def get_detail_order(
     summary="Atualizar pedido",
     responses={
         404: {"description": "Pedido ou recurso associado não encontrado"},
-        400: {"description": "Estoque insuficiente"}
+        400: {"description": "Pedido não encontrado"}
     }
 )
 async def put_detail_order(
@@ -284,7 +284,7 @@ async def put_detail_order(
                 if product.stock < item_data.amount:
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
-                        detail=f"Estoque insuficiente para {product.name}"
+                        detail=f"Estoque insuficiente Produto ID {product.id_product} (Quantidade em estoque {product.stock})"
                     )
                 
                 product.stock -= item_data.amount
