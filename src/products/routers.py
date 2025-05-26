@@ -11,7 +11,7 @@ from .models import Product
 from .schemas import ProductCreate, ProductResponse, ProductUpdate
 import uuid
 import shutil
-
+import json
 
 product_router = APIRouter(
     prefix="/products",
@@ -229,20 +229,24 @@ async def get_detail_product(
 )
 async def put_detail_product(
     id_product: int,
-    data: ProductUpdate,
-    image: Optional[UploadFile] = File(None),
+    data: str = Form(...),
+    image: Optional[Union[UploadFile, str]] = File(None),
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
     check_admin_permission(current_user)
     
     try:
-        product = db.query(Product).get(id_product)
+        product = db.get(Product, id_product)
+
         if not product:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Produto ID {id_product} não encontrado"
             )
+        
+        data_dict = json.loads(data)
+        data_model = ProductUpdate(**data_dict)
 
         image_path = None
         if image:
@@ -259,7 +263,7 @@ async def put_detail_product(
             with open(image_path, "wb") as buffer:
                 shutil.copyfileobj(image.file, buffer)
 
-        update_data = data.model_dump(exclude_unset=True)
+        update_data = data_model.model_dump(exclude_unset=True)
         if image_path:
             update_data["images"] = image_path
             
