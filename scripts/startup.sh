@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 if [ "$ENVIRONMENT" = "development" ]; then
     echo "⏳ Aguardando banco de dados subir..."
@@ -9,8 +10,13 @@ if [ "$ENVIRONMENT" = "development" ]; then
     echo "✅ Banco de dados está no ar!"
 fi
 
-echo "Aplicando migrations..."
-alembic upgrade head
+if [ "$ENVIRONMENT" = "production" ]; then
+    echo "📦 Aplicando migrations no ambiente de produção..."
+    alembic upgrade head
+else
+    echo "📦 Aplicando migrations no ambiente de desenvolvimento..."
+    alembic upgrade head
+fi
 
 if [ "$ENVIRONMENT" = "development" ]; then
     echo "🧪 Rodando em modo DEV..."
