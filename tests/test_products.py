@@ -8,7 +8,6 @@ from src.products.models import Product
 def create_mock_products(db_session):
     db_session.query(Product).delete()
     db_session.commit()
-
     db_session.add_all([
         Product(
             name="Notebook",
@@ -41,22 +40,9 @@ def create_mock_products(db_session):
     db_session.commit()
 
 
-def create_product(name, price, stock, category, section):
-    return Product(
-        name=name,
-        bar_code=str(uuid.uuid4())[:13],
-        price=price,
-        stock=stock,
-        category=category,
-        section=section,
-        valid_date=date(2025, 12, 31)
-    )
-
-
 def test_create_product_success(client_with_admin):
     image = io.BytesIO(b"fake image content")
     barcode = str(uuid.uuid4())[:13]
-
     data = {
         "name": "Tênis de Corrida",
         "bar_code": barcode,
@@ -67,8 +53,8 @@ def test_create_product_success(client_with_admin):
         "category": "Calçados",
         "section": "Esportes"
     }
+    
     files = {"image": ("tenis.jpg", image, "image/jpeg")}
-
     response = client_with_admin.post("/products/", data=data, files=files)
     assert response.status_code == HTTPStatus.CREATED
     assert response.json()["bar_code"] == barcode
@@ -90,14 +76,14 @@ def test_create_product_invalid_date(client_with_admin):
 
 def test_list_all_products(client, db_session):
     create_mock_products(db_session)
-
+    
     response = client.get("/products/")
     assert response.status_code == HTTPStatus.OK
     assert len(response.json()) == 3
 
 
-def test_pagination(client_with_admin):
-    response = client_with_admin.get("/products/?skip=1&limit=1")
+def test_pagination(client):
+    response = client.get("/products/?skip=1&limit=1")
     assert response.status_code == HTTPStatus.OK
     assert len(response.json()) == 1
 
@@ -154,6 +140,7 @@ def test_combined_filter(client, db_session):
 
 def test_update_product_success(client_with_admin, db_session):
     create_mock_products(db_session)
+
     product = db_session.query(Product).first()
     payload = {
         "price": 149,
@@ -173,18 +160,16 @@ def test_update_product_success(client_with_admin, db_session):
 def test_update_product_not_found(client_with_admin):
     payload = {"price": 199.90}
     response = client_with_admin.put(f"/products/{999}", data=payload)
-
     assert response.status_code == HTTPStatus.NOT_FOUND
     assert "não encontrado" in response.json()["detail"].lower()
 
 
 def test_delete_product_success(client_with_admin, db_session):
     create_mock_products(db_session)
+
     product = db_session.query(Product).first()
-    print(product.id_product)
-
+    
     response = client_with_admin.delete(f"/products/{product.id_product}")
-
     assert response.status_code == HTTPStatus.OK
     data = response.json()
     assert data["id_product"] == product.id_product
@@ -192,6 +177,5 @@ def test_delete_product_success(client_with_admin, db_session):
 
 def test_delete_product_not_found(client_with_admin):
     response = client_with_admin.delete("/products/9999")
-
     assert response.status_code == HTTPStatus.NOT_FOUND
     assert "não encontrado" in response.json()["detail"].lower()

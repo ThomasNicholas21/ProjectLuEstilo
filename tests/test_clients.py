@@ -3,20 +3,14 @@ from src.clients.models import Client
 from uuid import uuid4
 
 
-def create_mock_client(
-    db_session,
-    name="Maria Souza",
-    cpf="123.456.789-09",
-    email=None,
-    phone="(21) 98888-7777"
-):
+def create_mock_client(db_session):
     db_session.query(Client).delete()
     db_session.commit()
     client = Client(
-        name=name,
-        cpf=cpf,
-        email=email or f"mock{uuid4().hex[:6]}@email.com",
-        phone=phone
+        name="Maria Souza",
+        cpf="123.456.789-09",
+        email=f"mock{uuid4().hex[:6]}@email.com",
+        phone="(21) 98888-7777"
     )
     db_session.add(client)
     db_session.commit()
@@ -34,7 +28,6 @@ def test_create_client_success(client_with_admin):
 
     response = client_with_admin.post("/clients/", json=payload)
     assert response.status_code == HTTPStatus.CREATED
-
     data = response.json()
     assert data["name"] == payload["name"]
     assert data["email"] == payload["email"]
@@ -69,17 +62,19 @@ def test_get_clients(client, db_session):
 def test_update_client_success(client_with_admin, db_session):
     mock_client = create_mock_client(db_session)
 
-    update_data = {"name": "Maria Atualizada"}
+    update_data = {
+        "name": "Maria Atualizada"
+    }
 
     response = client_with_admin.put(f"/clients/{mock_client.id_client}", json=update_data)
-
     assert response.status_code == HTTPStatus.OK
     assert response.json()["name"] == "Maria Atualizada"
 
 
 def test_delete_client_success(client_with_admin, db_session):
     mock_client = create_mock_client(db_session)
-
+    
     response = client_with_admin.delete(f"/clients/{mock_client.id_client}")
     assert response.status_code == HTTPStatus.OK
     assert response.json()["id_client"] == mock_client.id_client
+    

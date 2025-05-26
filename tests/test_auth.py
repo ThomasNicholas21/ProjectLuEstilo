@@ -1,29 +1,27 @@
 import pytest
 from http import HTTPStatus
-from fastapi.testclient import TestClient
 from src.auth.models import User
 from src.auth.security.token import get_password_hash
 
 
-def create_mock_user(db_session, username="test_user", password="test_password", role="regular"):
+def create_mock_user(db_session):
     db_session.query(User).delete()
     db_session.commit()
     user = User(
-        username=username,
-        password=get_password_hash(password),
-        role=role
+        username="test_user",
+        password=get_password_hash("test_password"),
+        role="regular"
     )
     db_session.add(user)
     db_session.commit()
 
 
-def test_register_user_success(client: TestClient):
+def test_register_user_success(client):
     response = client.post("/auth/register", json={
         "username": "new_user",
         "password": "new_password",
         "role": "regular"
-        }
-    )
+    })
 
     assert response.status_code == HTTPStatus.CREATED
     data = response.json()
@@ -32,22 +30,20 @@ def test_register_user_success(client: TestClient):
     assert "id_user" in data
 
 
-def test_register_user_already_exists(client: TestClient, db_session):
+def test_register_user_already_exists(client, db_session):
     create_mock_user(db_session)
 
     response = client.post("/auth/register", json={
         "username": "test_user",
         "password": "test_password",
         "role": "regular"
-        }
-    )
+    })
 
-    print(response.status_code)
     assert response.status_code == HTTPStatus.BAD_REQUEST
-    assert response.json()["detail"] == "Nome de usuário já está em uso."
+    assert response.json()["detail"] == "Nome de usuário já existe."
 
 
-def test_login_user_success(client: TestClient, db_session):
+def test_login_user_success(client, db_session):
     create_mock_user(db_session)
 
     response = client.post("/auth/login", data={
@@ -62,7 +58,7 @@ def test_login_user_success(client: TestClient, db_session):
     assert data["token_type"] == "bearer"
 
 
-def test_login_user_invalid_credentials(client: TestClient, db_session):
+def test_login_user_invalid_credentials(client, db_session):
     create_mock_user(db_session)
 
     response = client.post("/auth/login", data={
@@ -74,15 +70,14 @@ def test_login_user_invalid_credentials(client: TestClient, db_session):
     assert response.json()["detail"] == "Credenciais inválidas."
 
 
-def test_refresh_token_success(client: TestClient, db_session):
+def test_refresh_token_success(client, db_session):
     create_mock_user(db_session)
-
+    
     login_response = client.post("/auth/login", data={
         "username": "test_user",
         "password": "test_password"
     })
     refresh_token = login_response.json()["refresh_token"]
-
     response = client.post("/auth/refresh-token", json={
         "refresh_token": refresh_token
     })
@@ -93,8 +88,7 @@ def test_refresh_token_success(client: TestClient, db_session):
     assert data["refresh_token"] == refresh_token
 
 
-@pytest.mark.filterwarnings("ignore::DeprecationWarning")
-def test_refresh_token_invalid(client: TestClient):
+def test_refresh_token_invalid(client):
     response = client.post("/auth/refresh-token", json={
         "refresh_token": "invalid.token.value"
     })
