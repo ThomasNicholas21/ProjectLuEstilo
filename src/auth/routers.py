@@ -22,7 +22,6 @@ from .schemas import (
 )
 from .models import User
 from src.common.database import get_db
-from src.utils.exceptions import exception_handler_decorator
 from sentry_sdk import capture_exception
 
 
