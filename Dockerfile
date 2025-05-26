@@ -2,7 +2,7 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-COPY /src /src
+COPY /src /app/src
 COPY scripts /scripts
 COPY requirements.txt .
 COPY alembic alembic
