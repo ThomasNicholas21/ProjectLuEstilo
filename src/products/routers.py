@@ -50,7 +50,7 @@ async def post_product(
         Optional[str],
         Form(
             description="Data de validade no formato YYYY-MM-DD",
-            example=["2025-12-31"]
+            examples=["2025-12-31"]
         )
     ] = None,
     category: Optional[str] = Form(None),
@@ -62,9 +62,11 @@ async def post_product(
     
     try:
         parsed_valid_date = None
+
         if valid_date:
             try:
                 parsed_valid_date = datetime.strptime(valid_date, "%Y-%m-%d")
+
             except ValueError:
                 raise HTTPException(
                     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -104,19 +106,22 @@ async def post_product(
         db.commit()
         db.refresh(product)
         return product
+    
+    except HTTPException as e:
+        raise
 
     except SQLAlchemyError as e:
         db.rollback()
 
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro ao salvar produto no banco de dados"
+            detail=f"Erro ao salvar produto no banco de dados: {e}"
         )
     
     except Exception as e:
         db.rollback()
 
-        raise HTTPException(status_code=500, detail=f"Erro ao criar cliente: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao criar produto: {e}")
 
 
 @product_router.get(
@@ -156,7 +161,7 @@ async def get_products(
 
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro ao consultar produtos"
+            detail=f"Erro ao consultar produtos: {e}"
         )
     
     except Exception as e:

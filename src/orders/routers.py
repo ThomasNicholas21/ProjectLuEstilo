@@ -182,7 +182,7 @@ async def get_detail_order(
     current_user: dict = Depends(get_current_user)
 ):
     try: 
-        order = db.query(Order).get(id_order)
+        order = db.get(Order, id_order)
 
         if not order:
             raise HTTPException(
@@ -191,6 +191,9 @@ async def get_detail_order(
             )
         return order
     
+    except HTTPException as e:
+        raise
+
     except SQLAlchemyError as e:
         db.rollback()
 
@@ -225,7 +228,7 @@ async def put_detail_order(
 ):
     check_admin_permission(current_user)
     try:
-        order = db.query(Order).get(id_order)
+        order = db.get(Order, id_order)
         if not order:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -284,6 +287,9 @@ async def put_detail_order(
         db.commit()
         return order
 
+    except HTTPException as e:
+        raise
+
     except SQLAlchemyError as e:
         db.rollback()
 
@@ -301,7 +307,6 @@ async def put_detail_order(
         )
 
 
-
 @order_router.delete(
     "/{id_order}",
     response_model=OrderResponse,
@@ -315,7 +320,7 @@ async def delete_detail_order(
 ):
     check_admin_permission(current_user)
     try:
-        order = db.query(Order).get(id_order)
+        order = db.get(Order, id_order)
         if not order:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -329,6 +334,9 @@ async def delete_detail_order(
         db.delete(order)
         db.commit()
         return order
+    
+    except HTTPException as e:
+        raise
 
     except SQLAlchemyError as e:
         db.rollback()
