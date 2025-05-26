@@ -88,6 +88,12 @@ async def post_order(
         db.commit()
         db.refresh(new_order)
         return new_order
+    
+    except HTTPException as e:
+        capture_exception(e)
+        db.rollback()
+
+        raise
 
     except SQLAlchemyError as e:
         capture_exception(e)
@@ -106,13 +112,6 @@ async def post_order(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro ao criar pedido: {e}"
         )
-    
-    except HTTPException as e:
-        capture_exception(e)
-        db.rollback()
-
-        raise
-
 
 
 @order_router.get(
@@ -203,6 +202,12 @@ async def get_detail_order(
             )
         return order
     
+    except HTTPException as e:
+        capture_exception(e)
+        db.rollback()
+
+        raise
+    
     except SQLAlchemyError as e:
         capture_exception(e)
         db.rollback()
@@ -221,12 +226,6 @@ async def get_detail_order(
             detail=f"Erro ao consultar cliente: {e}"
         )
     
-    except HTTPException as e:
-        capture_exception(e)
-        db.rollback()
-
-        raise
-
 
 @order_router.put(
     "/{id_order}",
@@ -303,6 +302,12 @@ async def put_detail_order(
 
         db.commit()
         return order
+    
+    except HTTPException as e:
+        capture_exception(e)
+        db.rollback()
+
+        raise
 
     except SQLAlchemyError as e:
         capture_exception(e)
@@ -321,12 +326,6 @@ async def put_detail_order(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro ao atualizar pedido {e}"
         )
-    
-    except HTTPException as e:
-        capture_exception(e)
-        db.rollback()
-
-        raise
 
 
 @order_router.delete(
@@ -356,6 +355,12 @@ async def delete_detail_order(
         db.delete(order)
         db.commit()
         return order
+    
+    except HTTPException as e:
+        capture_exception(e)
+        db.rollback()
+
+        raise
 
     except SQLAlchemyError as e:
         db.rollback()
@@ -372,10 +377,4 @@ async def delete_detail_order(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro ao deletar pedido: {e}"
         )
-    
-    except HTTPException as e:
-        capture_exception(e)
-        db.rollback()
-
-        raise
     

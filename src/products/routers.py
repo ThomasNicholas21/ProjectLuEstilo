@@ -106,6 +106,12 @@ async def post_product(
         db.commit()
         db.refresh(product)
         return product
+    
+    except HTTPException as e:
+        capture_exception(e)
+        db.rollback()
+
+        raise
 
     except SQLAlchemyError as e:
         capture_exception(e)
@@ -121,12 +127,6 @@ async def post_product(
         db.rollback()
 
         raise HTTPException(status_code=500, detail=f"Erro ao criar produto: {e}")
-    
-    except HTTPException as e:
-        capture_exception(e)
-        db.rollback()
-
-        raise
 
 
 @product_router.get(
@@ -199,6 +199,12 @@ async def get_detail_product(
                 detail=f"Produto ID {id_product} não encontrado"
             )
         return product
+    
+    except HTTPException as e:
+        capture_exception(e)
+        db.rollback()
+
+        raise
 
     except SQLAlchemyError as e:
         capture_exception(e)
@@ -214,13 +220,6 @@ async def get_detail_product(
         db.rollback()
 
         raise HTTPException(status_code=500, detail=f"Erro ao buscar produtos: {e}")
-    
-    except HTTPException as e:
-        capture_exception(e)
-        db.rollback()
-        
-        raise
-
 
 
 @product_router.put(
@@ -311,6 +310,12 @@ async def put_detail_product(
         db.commit()
         db.refresh(product)
         return product
+    
+    except HTTPException as e:
+        capture_exception(e)
+        db.rollback()
+
+        raise
 
     except SQLAlchemyError as e:
         capture_exception(e)
@@ -326,12 +331,6 @@ async def put_detail_product(
         db.rollback()
 
         raise HTTPException(status_code=500, detail=f"Erro ao atualizar produto: {e}")
-    
-    except HTTPException:
-        capture_exception(e)
-        db.rollback()
-
-        raise
 
 
 @product_router.delete(
@@ -369,6 +368,12 @@ async def delete_detail_product(
         db.delete(product)
         db.commit()
         return product
+    
+    except HTTPException as e:
+        capture_exception(e)
+        db.rollback()
+
+        raise
 
     except SQLAlchemyError as e:
         capture_exception(e)
@@ -387,9 +392,3 @@ async def delete_detail_product(
             status_code=500, 
             detail=f"Erro ao excluir produto: {e}"
         )
-
-    except HTTPException as e:
-        capture_exception(e)
-        db.rollback()
-
-        raise
