@@ -229,13 +229,26 @@ async def get_detail_product(
 )
 async def put_detail_product(
     id_product: int,
-    data: str = Form(...),
+    current_user: dict = Depends(get_current_user),
+    name: Optional[str] = Form(None),
+    bar_code: Optional[str] = Form(None),
+    description: Optional[str] = Form(None),
+    price: Optional[Union[float, str]] = Form(None),
+    stock: Optional[Union[int, str]] = Form(None),
+    valid_date: Annotated[
+        Optional[str],
+        Form(
+            description="Data de validade no formato YYYY-MM-DD",
+            examples=["2025-12-31"]
+        )
+    ] = None,
+    category: Optional[str] = Form(None),
+    section: Optional[str] = Form(None),
     image: Optional[Union[UploadFile, str]] = File(None),
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     check_admin_permission(current_user)
-    
+
     try:
         product = db.get(Product, id_product)
 
@@ -244,9 +257,16 @@ async def put_detail_product(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Produto ID {id_product} não encontrado"
             )
-        
-        data_dict = json.loads(data)
-        data_model = ProductUpdate(**data_dict)
+
+        parsed_valid_date = None
+        if valid_date:
+            try:
+                parsed_valid_date = datetime.strptime(valid_date, "%Y-%m-%d")
+            except ValueError:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail="Formato de data inválido. Use YYYY-MM-DD"
+                )
 
         image_path = None
         if image:
@@ -255,42 +275,49 @@ async def put_detail_product(
                     status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
                     detail="Formatos suportados: JPEG, PNG"
                 )
-                
+
             file_ext = image.filename.split('.')[-1]
             filename = f"{uuid.uuid4()}.{file_ext}"
             image_path = str(UPLOAD_DIR / filename)
-            
+
             with open(image_path, "wb") as buffer:
                 shutil.copyfileobj(image.file, buffer)
 
-        update_data = data_model.model_dump(exclude_unset=True)
-        if image_path:
-            update_data["images"] = image_path
-            
-        for key, value in update_data.items():
-            setattr(product, key, value)
+        update_fields = {
+            "name": name.strip() if name else None,
+            "bar_code": bar_code.strip() if bar_code else None,
+            "description": description.strip() if description else None,
+            "price": price if price is not None and price != "" else None,
+            "stock": stock if stock is not None and stock != "" else None,
+            "valid_date": parsed_valid_date,
+            "category": category.strip() if category else None,
+            "section": section.strip() if section else None,
+            "images": image_path
+        }
+
+        for key, value in update_fields.items():
+            if value is not None:
+                setattr(product, key, value)
 
         db.commit()
         db.refresh(product)
         return product
-    
-    except HTTPException as e:
-        db.rollback()
 
+    except HTTPException:
+        db.rollback()
         raise
 
     except SQLAlchemyError as e:
         db.rollback()
-
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro inesperado no banco de dados: {e}"
         )
-    
+
     except Exception as e:
         db.rollback()
-
         raise HTTPException(status_code=500, detail=f"Erro ao atualizar produto: {e}")
+
 
 
 @product_router.delete(
