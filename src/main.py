@@ -8,6 +8,7 @@ from src.auth.routers import auth_router
 from src.products.routers import product_router
 from src.orders.routers import order_router
 from src.utils.exceptions import sentry_exception_middleware, register_exception_handlers
+from sentry_sdk.integrations.asgi import SentryAsgiMiddleware
 
 
 @asynccontextmanager
@@ -26,15 +27,12 @@ app = FastAPI(
 init_sentry()
 
 
-sentry_exception_middleware(app)
-register_exception_handlers(app)
-
-
 app.include_router(client_router)
 app.include_router(auth_router)
 app.include_router(product_router)
 app.include_router(order_router)
 
+app.add_middleware(SentryAsgiMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], 
@@ -42,3 +40,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+sentry_exception_middleware(app)
+register_exception_handlers(app)

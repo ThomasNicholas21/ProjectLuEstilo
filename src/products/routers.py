@@ -8,10 +8,10 @@ from src.auth.security.token import get_current_user
 from src.common.database import get_db
 from src.utils.role_validator import check_admin_permission
 from .models import Product
-from .schemas import ProductCreate, ProductResponse, ProductUpdate
+from .schemas import ProductCreate, ProductResponse
+from sentry_sdk import capture_exception
 import uuid
 import shutil
-import json
 
 product_router = APIRouter(
     prefix="/products",
@@ -106,13 +106,9 @@ async def post_product(
         db.commit()
         db.refresh(product)
         return product
-    
-    except HTTPException as e:
-        db.rollback()
-
-        raise
 
     except SQLAlchemyError as e:
+        capture_exception(e)
         db.rollback()
 
         raise HTTPException(
@@ -121,9 +117,16 @@ async def post_product(
         )
     
     except Exception as e:
+        capture_exception(e)
         db.rollback()
 
         raise HTTPException(status_code=500, detail=f"Erro ao criar produto: {e}")
+    
+    except HTTPException as e:
+        capture_exception(e)
+        db.rollback()
+
+        raise
 
 
 @product_router.get(
@@ -159,6 +162,7 @@ async def get_products(
         return query.offset(skip).limit(limit).all()
 
     except SQLAlchemyError as e:
+        capture_exception(e)
         db.rollback()
 
         raise HTTPException(
@@ -167,6 +171,7 @@ async def get_products(
         )
     
     except Exception as e:
+        capture_exception(e)
         db.rollback()
 
         raise HTTPException(status_code=500, detail=f"Erro ao buscar produto: {e}")
@@ -194,13 +199,9 @@ async def get_detail_product(
                 detail=f"Produto ID {id_product} não encontrado"
             )
         return product
-    
-    except HTTPException as e:
-        db.rollback()
-        
-        raise
 
     except SQLAlchemyError as e:
+        capture_exception(e)
         db.rollback()
 
         raise HTTPException(
@@ -209,9 +210,17 @@ async def get_detail_product(
         )
     
     except Exception as e:
+        capture_exception(e)
         db.rollback()
 
         raise HTTPException(status_code=500, detail=f"Erro ao buscar produto: {e}")
+    
+    except HTTPException as e:
+        capture_exception(e)
+        db.rollback()
+        
+        raise
+
 
 
 @product_router.put(
@@ -303,20 +312,26 @@ async def put_detail_product(
         db.refresh(product)
         return product
 
-    except HTTPException:
-        db.rollback()
-        raise
-
     except SQLAlchemyError as e:
+        capture_exception(e)
         db.rollback()
+
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro inesperado no banco de dados: {e}"
         )
 
     except Exception as e:
+        capture_exception(e)
         db.rollback()
+
         raise HTTPException(status_code=500, detail=f"Erro ao atualizar produto: {e}")
+    
+    except HTTPException:
+        capture_exception(e)
+        db.rollback()
+
+        raise
 
 
 
@@ -355,13 +370,9 @@ async def delete_detail_product(
         db.delete(product)
         db.commit()
         return product
-    
-    except HTTPException as e:
-        db.rollback()
-
-        raise
 
     except SQLAlchemyError as e:
+        capture_exception(e)
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -369,6 +380,13 @@ async def delete_detail_product(
         )
     
     except Exception as e:
+        capture_exception(e)
         db.rollback()
 
         raise HTTPException(status_code=500, detail=f"Erro insperado: {str(e)}")
+
+    except HTTPException as e:
+        capture_exception(e)
+        db.rollback()
+
+        raise

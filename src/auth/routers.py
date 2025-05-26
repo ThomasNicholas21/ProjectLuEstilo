@@ -22,6 +22,8 @@ from .schemas import (
 )
 from .models import User
 from src.common.database import get_db
+from src.utils.exceptions import exception_handler_decorator
+from sentry_sdk import capture_exception
 
 
 auth_router = APIRouter(
@@ -33,7 +35,6 @@ auth_router = APIRouter(
     }
 )
 
-
 @auth_router.post(
     "/register",
     response_model=UserResponse,
@@ -44,7 +45,7 @@ auth_router = APIRouter(
         400: {"description": "Nome de usuário já existe"}
     }
 )
-def register_user(user_data: UserRegister, db: Session = Depends(get_db)):
+async def register_user(user_data: UserRegister, db: Session = Depends(get_db)):
     try:
         existing_user = db.query(User).filter(User.username == user_data.username).first()
 
@@ -68,6 +69,7 @@ def register_user(user_data: UserRegister, db: Session = Depends(get_db)):
         return new_user
 
     except HTTPException as e:
+        capture_exception(e)
         db.rollback()
         
         raise
@@ -121,6 +123,7 @@ async def login_user_with_form(
         return TokenResponse(access_token=access_token, refresh_token=refresh_token)
     
     except HTTPException as e:
+        capture_exception(e)
         db.rollback()
 
         raise
@@ -165,6 +168,7 @@ async def refresh_access_token(payload: TokenRefreshRequest):
         return TokenResponse(access_token=new_access_token, refresh_token=payload.refresh_token)
     
     except HTTPException as e:
+        capture_exception(e)
         raise
 
     except SQLAlchemyError as e:

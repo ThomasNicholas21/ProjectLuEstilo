@@ -15,6 +15,7 @@ from src.products.models import Product
 from src.clients.models import Client
 from src.orders.schemas import OrderCreate, OrderResponse, OrderUpdate
 from src.utils.role_validator import check_admin_permission
+from sentry_sdk import capture_exception
 
 
 order_router = APIRouter(
@@ -88,13 +89,8 @@ async def post_order(
         db.refresh(new_order)
         return new_order
 
-
-    except HTTPException as e:
-        db.rollback()
-
-        raise
-
     except SQLAlchemyError as e:
+        capture_exception(e)
         db.rollback()
 
         raise HTTPException(
@@ -103,12 +99,20 @@ async def post_order(
         )
     
     except Exception as e:
+        capture_exception(e)
         db.rollback()
 
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro ao criar pedido: {e}"
         )
+    
+    except HTTPException as e:
+        capture_exception(e)
+        db.rollback()
+
+        raise
+
 
 
 @order_router.get(
@@ -160,6 +164,7 @@ async def get_order(
         return query.offset(skip).limit(limit).all()
 
     except SQLAlchemyError as e:
+        capture_exception(e)
         db.rollback()
 
         raise HTTPException(
@@ -168,6 +173,7 @@ async def get_order(
         )
     
     except Exception as e:
+        capture_exception(e)
         db.rollback()
         
         raise HTTPException(
@@ -197,12 +203,8 @@ async def get_detail_order(
             )
         return order
     
-    except HTTPException as e:
-        db.rollback()
-
-        raise
-
     except SQLAlchemyError as e:
+        capture_exception(e)
         db.rollback()
 
         raise HTTPException(
@@ -211,12 +213,19 @@ async def get_detail_order(
         )
 
     except Exception as e:
+        capture_exception(e)
         db.rollback()
 
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro ao consultar cliente: {e}"
         )
+    
+    except HTTPException as e:
+        capture_exception(e)
+        db.rollback()
+
+        raise
 
 
 @order_router.put(
@@ -295,12 +304,8 @@ async def put_detail_order(
         db.commit()
         return order
 
-    except HTTPException as e:
-        db.rollback()
-
-        raise
-
     except SQLAlchemyError as e:
+        capture_exception(e)
         db.rollback()
 
         raise HTTPException(
@@ -309,12 +314,19 @@ async def put_detail_order(
         )
     
     except Exception as e:
+        capture_exception(e)
         db.rollback()
 
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro ao atualizar pedido {e}"
         )
+    
+    except HTTPException as e:
+        capture_exception(e)
+        db.rollback()
+
+        raise
 
 
 @order_router.delete(
@@ -344,11 +356,6 @@ async def delete_detail_order(
         db.delete(order)
         db.commit()
         return order
-    
-    except HTTPException as e:
-        db.rollback()
-
-        raise
 
     except SQLAlchemyError as e:
         db.rollback()
@@ -365,4 +372,10 @@ async def delete_detail_order(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro ao deletar pedido: {e}"
         )
+    
+    except HTTPException as e:
+        capture_exception(e)
+        db.rollback()
+
+        raise
     
