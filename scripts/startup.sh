@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+export PYTHONPATH=/app
+
 if [ "$ENVIRONMENT" = "development" ]; then
     echo "⏳ Aguardando banco de dados subir..."
     until nc -z lu_estilo_db 5432; do
