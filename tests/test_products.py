@@ -172,7 +172,7 @@ def test_update_product_success(client_with_admin, db_session):
 
 def test_update_product_not_found(client_with_admin):
     payload = {"price": 199.90}
-    response = client_with_admin.put(f"/products/{999}", json=payload)
+    response = client_with_admin.put(f"/products/{999}", data=payload)
 
     assert response.status_code == HTTPStatus.NOT_FOUND
     assert "não encontrado" in response.json()["detail"].lower()
