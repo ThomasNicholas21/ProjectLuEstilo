@@ -1,21 +1,8 @@
 import io
 import uuid
-import pytest
 from datetime import date
 from http import HTTPStatus
-from fastapi.testclient import TestClient
-from src.main import app
 from src.products.models import Product
-
-
-@pytest.fixture
-def client_with_admin(monkeypatch):
-    def mock_get_current_user():
-        return {"username": "admin", "role": "admin"}
-
-    from src.auth.security.token import get_current_user
-    app.dependency_overrides = {get_current_user: mock_get_current_user}
-    return TestClient(app)
 
 
 def create_mock_products(db_session):
@@ -163,3 +150,48 @@ def test_combined_filter(client, db_session):
     data = response.json()
     assert len(data) == 1
     assert data[0]["name"] == "Notebook"
+
+
+def test_update_product_success(client_with_admin, db_session):
+    create_mock_products(db_session)
+    product = db_session.query(Product).first()
+    payload = {
+        "price": 149,
+        "stock": 25,
+        "description": "Produto atualizado"
+    }
+
+    response = client_with_admin.put(f"/products/{product.id_product}", data=payload)
+    assert response.status_code == HTTPStatus.OK
+    data = response.json()
+    assert data["id_product"] == product.id_product
+    assert data["price"] == 149
+    assert data["stock"] == 25
+    assert data["description"] == "Produto atualizado"
+
+
+def test_update_product_not_found(client_with_admin):
+    payload = {"price": 199.90}
+    response = client_with_admin.put(f"/products/{999}", json=payload)
+
+    assert response.status_code == HTTPStatus.NOT_FOUND
+    assert "não encontrado" in response.json()["detail"].lower()
+
+
+def test_delete_product_success(client_with_admin, db_session):
+    create_mock_products(db_session)
+    product = db_session.query(Product).first()
+    print(product.id_product)
+
+    response = client_with_admin.delete(f"/products/{product.id_product}")
+
+    assert response.status_code == HTTPStatus.OK
+    data = response.json()
+    assert data["id_product"] == product.id_product
+
+
+def test_delete_product_not_found(client_with_admin):
+    response = client_with_admin.delete("/products/9999")
+
+    assert response.status_code == HTTPStatus.NOT_FOUND
+    assert "não encontrado" in response.json()["detail"].lower()
