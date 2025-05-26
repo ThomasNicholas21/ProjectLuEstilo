@@ -31,7 +31,11 @@ def db_session():
         db.close()
 
 
-def override_get_current_user():
+def regular_user():
+    return {"username": "regular", "role": "regular"}
+
+
+def admin_user():
     return {"username": "admin", "role": "admin"}
 
 
@@ -44,7 +48,22 @@ def client(db_session):
             pass
 
     app.dependency_overrides[get_db] = _override_get_db
-    app.dependency_overrides[get_current_user] = override_get_current_user
+    app.dependency_overrides[get_current_user] = regular_user
 
+    with TestClient(app) as c:
+        yield c
+
+
+@pytest.fixture
+def client_with_admin(db_session):
+    def _override_get_db():
+        try:
+            yield db_session
+        finally:
+            pass
+    
+    app.dependency_overrides[get_db] = _override_get_db
+    app.dependency_overrides[get_current_user] = admin_user
+    
     with TestClient(app) as c:
         yield c
