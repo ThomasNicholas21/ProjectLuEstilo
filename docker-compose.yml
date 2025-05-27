@@ -10,6 +10,7 @@ services:
       - ./alembic.ini:/app/alembic.ini
       - ./dotenv/.env:/app/.env
       - ./tests:/app/tests
+      - ./media:/app/media
     env_file:
       - dotenv/.env
     depends_on:
