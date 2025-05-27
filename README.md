@@ -29,7 +29,9 @@ Foi feito um diagrama para facilitar modelagem de dados no codigo, seguindo os r
   
 ## 🚀 Deploy
 A aplicação está hospedada no Render (Docker + variáveis de ambiente):  
-🌐 https://projectluestilo.onrender.com
+**Obs**: ao acessar a aplicação o servidor pode levar até um minuto para inicializar.
+
+🌐 https://projectluestilo.onrender.com/docs
 
 ## 📝 Logs e Monitoramento
 - **Sentry**: captura exceções automaticamente. Configure `SENTRY_DSN` no `.env`.
