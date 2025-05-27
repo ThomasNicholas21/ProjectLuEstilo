@@ -138,7 +138,7 @@ async def get_detail_client(
         if not client:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Cliente não encontrado"
+                detail=f"Cliente ID {id_client} não encontrado"
             )
         
         return client
@@ -186,7 +186,7 @@ async def put_detail_client(
     if not client:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Cliente não encontrado"
+            detail=f"Cliente ID {id_client} não encontrado"
         )
     
     try:
@@ -249,7 +249,7 @@ async def delete_detail_client(
     if not client:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Cliente não encontrado"
+            detail=f"Cliente ID {id_client} não encontrado"
         )
     
     if client.orders:
