@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status, Query
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from typing import Optional, Annotated, List, Union
 from datetime import datetime
 from pathlib import Path
@@ -112,6 +112,15 @@ async def post_product(
         db.rollback()
 
         raise
+
+    except IntegrityError as e:
+        capture_exception(e)
+        db.rollback()
+
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Dados únicos já existentes: {e}"
+        )
 
     except SQLAlchemyError as e:
         capture_exception(e)
@@ -316,6 +325,15 @@ async def put_detail_product(
         db.rollback()
 
         raise
+
+    except IntegrityError as e:
+        capture_exception(e)
+        db.rollback()
+
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Dados únicos já existentes: {e}"
+        )
 
     except SQLAlchemyError as e:
         capture_exception(e)

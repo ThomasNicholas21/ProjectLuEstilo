@@ -23,5 +23,6 @@ def init_sentry():
             SqlalchemyIntegration(),
         ],
         traces_sample_rate=1.0,  
-        environment="development"  
+        environment="development",
+        ignore_errors=[KeyboardInterrupt],  
     )

@@ -20,6 +20,7 @@ class ProductBase(BaseModel):
     valid_date: Optional[datetime] = Field(None, example="2025-12-31T23:59:59", description="Data de validade quando aplicável")
     category: Optional[str] = Field(None, max_length=50, example="Vestuário", description="Categoria do produto")
     section: Optional[str] = Field(None, max_length=50, example="Moda", description="Seção do produto")
+    images: Optional[str] = Field(None, example="http://example.com/image.jpg", description="URLs de imagens separadas por vírgula")
 
     model_config = ConfigDict(json_schema_extra={
         "example": {

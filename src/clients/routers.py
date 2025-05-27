@@ -9,6 +9,7 @@ from src.auth.security.token import get_current_user
 from src.utils.role_validator import check_admin_permission
 from sentry_sdk import capture_exception
 
+
 client_router = APIRouter(
     prefix="/clients",
     tags=["Clientes"],
@@ -69,10 +70,6 @@ async def post_client(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro ao criar cliente: {e}"
         )
-    
-    except HTTPException as e:
-        capture_exception(e)
-        raise
 
 
 @client_router.get(
@@ -96,6 +93,12 @@ async def get_client(
 
         return query.offset(skip).limit(limit).all()
     
+    except HTTPException as e:
+        capture_exception(e)
+        db.rollback()
+        
+        raise 
+
     except SQLAlchemyError as e:
         capture_exception(e)
         db.rollback()
@@ -113,12 +116,6 @@ async def get_client(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro ao buscar clientes: {e}"
         )
-    
-    except HTTPException as e:
-        capture_exception(e)
-        db.rollback()
-        
-        raise 
     
 
 @client_router.get(
@@ -145,6 +142,12 @@ async def get_detail_client(
             )
         
         return client
+    
+    except HTTPException as e:
+        capture_exception(e)
+        db.rollback()
+
+        raise 
 
     except SQLAlchemyError as e:
         capture_exception(e)
@@ -163,12 +166,6 @@ async def get_detail_client(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro ao buscar cliente: {e}"
         )
-    
-    except HTTPException as e:
-        capture_exception(e)
-        db.rollback()
-
-        raise 
 
 
 @client_router.put(
@@ -200,7 +197,12 @@ async def put_detail_client(
 
         db.commit()
         return client
+    
+    except HTTPException as e:
+        capture_exception(e)
+        db.rollback()
 
+        raise
     
     except IntegrityError as e:
         capture_exception(e)
@@ -228,12 +230,6 @@ async def put_detail_client(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro ao atualizar o client: {e}"
         )
-    
-    except HTTPException as e:
-        capture_exception(e)
-        db.rollback()
-
-        raise
 
 
 @client_router.delete(
@@ -267,6 +263,12 @@ async def delete_detail_client(
         db.commit()
         
         return client
+    
+    except HTTPException as e:
+        capture_exception(e)
+        db.rollback()
+
+        raise 
 
     except SQLAlchemyError as e:
         capture_exception(e)
@@ -285,9 +287,3 @@ async def delete_detail_client(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro ao deletar cliente: {e}"
         )
-
-    except HTTPException as e:
-        capture_exception(e)
-        db.rollback()
-
-        raise 

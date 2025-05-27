@@ -51,6 +51,12 @@ async def post_order(
         total_amount = 0
         order_items = []
 
+        if not db.query(Client).get(order.id_client):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Cliente ID {order.id_client} não encontrado"
+            )
+
         for item in order.products:
             product = db.query(Product).get(item.id_product)
             if not product:
