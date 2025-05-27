@@ -23,7 +23,7 @@ Esta API, desenvolvida com FastAPI e SQLAlchemy, gerencia autenticação de usu�
 - **Sentry SDK**
 
 ## 👨‍🔬 Diagrama de Entidade e Relacionamento
-Foi feito um diagrama para facilitar modelagem de dados no codigo, seguindo os requisitos específicados no documento.
+Foi feito um diagrama para facilitar modelagem de dados no codigo, seguindo os requisitos especificados no documento.
 
 ![Image](https://github.com/user-attachments/assets/9776c2b0-fcf0-42a1-985e-280238a8ee9a)
   
