@@ -21,6 +21,11 @@ Esta API, desenvolvida com FastAPI e SQLAlchemy, gerencia autenticação de usu�
 - **pytest** 
 - **python-dotenv**, **python-multipart**, **httpx**  
 - **Sentry SDK**
+
+## 👨‍🔬 Diagrama de Entidade e Relacionamento
+Foi feito um diagrama para facilitar modelagem de dados no codigo, seguindo os requisitos específicados no documento.
+
+![Image](https://github.com/user-attachments/assets/9776c2b0-fcf0-42a1-985e-280238a8ee9a)
   
 ## 🚀 Deploy
 A aplicação está hospedada no Render (Docker + variáveis de ambiente):  
